@@ -29,6 +29,8 @@ app = FastAPI()
 
 uploaded_df = None
 
+last_predictions_df = None
+
 # ==========================================
 # MODEL REQUEST
 # ==========================================
@@ -146,12 +148,23 @@ async def upload_excel(file: UploadFile = File(...)):
 
         numeric_columns = []
 
+        possible_time_columns = []
+
         for col in df.columns:
 
             detected_type = detect_column_type(
                 df[col],
                 col
             )
+
+            if detected_type in [
+                "datetime",
+                "categorical"
+            ]:
+
+                possible_time_columns.append(
+                    str(col)
+                )
 
             if (
                 detected_type == "datetime"
@@ -160,6 +173,7 @@ async def upload_excel(file: UploadFile = File(...)):
                 detected_date_column = str(col)
 
             if detected_type == "numeric":
+
                 numeric_columns.append(str(col))
 
             columns_analysis.append({
@@ -180,6 +194,7 @@ async def upload_excel(file: UploadFile = File(...)):
         target_variable = None
 
         if len(numeric_columns) > 0:
+
             target_variable = numeric_columns[0]
 
         features = []
@@ -187,6 +202,7 @@ async def upload_excel(file: UploadFile = File(...)):
         for col in numeric_columns:
 
             if col != target_variable:
+
                 features.append(str(col))
 
         preview_data = (
@@ -206,19 +222,27 @@ async def upload_excel(file: UploadFile = File(...)):
 
             "columns_analysis": columns_analysis,
 
+            "possible_time_columns":
+                possible_time_columns,
+
             "suggestions": {
 
-                "date_column": detected_date_column,
+                "date_column":
+                    detected_date_column,
 
-                "target_variable": target_variable,
+                "target_variable":
+                    target_variable,
 
-                "features": features
+                "features":
+                    features
             },
 
             "preview": preview_data
         }
 
-        return jsonable_encoder(response_data)
+        return jsonable_encoder(
+            response_data
+        )
 
     except Exception as e:
 
@@ -236,15 +260,23 @@ async def run_model(request: ModelRequest):
     try:
 
         global uploaded_df
+        global last_predictions_df
 
         df = uploaded_df.copy()
 
-        target_variable = request.target_variable
+        target_variable =
+            request.target_variable
 
-        features = request.features
+        features =
+            request.features
+
+        date_column =
+            request.date_column
 
         model_df = df[
-            [target_variable] + features
+            [date_column] +
+            [target_variable] +
+            features
         ].dropna()
 
         X = model_df[features]
@@ -258,10 +290,32 @@ async def run_model(request: ModelRequest):
         predictions = model.predict(X)
 
         # ==========================================
+        # EXPORT DATAFRAME
+        # ==========================================
+
+        export_df = pd.DataFrame({
+
+            "Tempo":
+                model_df[date_column]
+                .astype(str),
+
+            "Valor_Real":
+                y.astype(float),
+
+            "Valor_Predito":
+                predictions.astype(float)
+        })
+
+        last_predictions_df = export_df
+
+        # ==========================================
         # METRICS
         # ==========================================
 
-        r2 = r2_score(y, predictions)
+        r2 = r2_score(
+            y,
+            predictions
+        )
 
         mae = mean_absolute_error(
             y,
@@ -326,27 +380,52 @@ async def run_model(request: ModelRequest):
 
             "model_results": {
 
-                "observations": int(len(model_df)),
+                "observations":
+                    int(len(model_df)),
 
-                "r2": float(r2),
+                "r2":
+                    round(float(r2), 2),
 
-                "mae": float(mae),
+                "mae":
+                    round(float(mae), 2),
 
-                "rmse": float(rmse),
+                "rmse":
+                    round(float(rmse), 2),
 
-                "intercept": float(model.intercept_),
+                "intercept":
+                    round(
+                        float(model.intercept_),
+                        2
+                    ),
 
-                "coefficients": coefficients,
+                "coefficients": {
 
-                "actual_values": list(
-                    y.astype(float)
-                ),
+                    k: round(v, 2)
 
-                "predicted_values": list(
-                    predictions.astype(float)
-                ),
+                    for k, v in
+                    coefficients.items()
+                },
 
-                "interpretation": interpretation
+                "time_values":
+                    list(
+                        model_df[date_column]
+                        .astype(str)
+                    ),
+
+                "actual_values":
+                    [
+                        round(float(v), 2)
+                        for v in y
+                    ],
+
+                "predicted_values":
+                    [
+                        round(float(v), 2)
+                        for v in predictions
+                    ],
+
+                "interpretation":
+                    interpretation
             }
         }
 
@@ -355,3 +434,34 @@ async def run_model(request: ModelRequest):
         return {
             "error": str(e)
         }
+
+# ==========================================
+# DOWNLOAD PREDICTIONS
+# ==========================================
+
+@app.get("/download-predictions")
+async def download_predictions():
+
+    global last_predictions_df
+
+    if last_predictions_df is None:
+
+        return {
+            "error":
+                "Nenhum modelo executado."
+        }
+
+    file_path = os.path.join(
+        UPLOAD_FOLDER,
+        "midas_predictions.xlsx"
+    )
+
+    last_predictions_df.to_excel(
+        file_path,
+        index=False
+    )
+
+    return FileResponse(
+        file_path,
+        filename="midas_predictions.xlsx"
+    )
