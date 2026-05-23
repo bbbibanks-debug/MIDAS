@@ -41,6 +41,10 @@ def home():
         "message": "MIDAS ONLINE"
     }
 
+@app.options("/upload")
+async def upload_options():
+    return {"message": "OK"}
+
 # =========================
 # DETECÇÃO DE TIPOS
 # =========================
