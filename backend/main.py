@@ -18,7 +18,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://bbbibanks-debug.github.io/MIDAS"
+        "https://bbbibanks-debug.github.io/MIDAS/"
     ],
     allow_credentials=False,
     allow_methods=["*"],
