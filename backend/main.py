@@ -6,9 +6,14 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
+from sklearn.metrics import (
+    r2_score,
+    mean_absolute_error,
+    mean_squared_error
+)
 
 import pandas as pd
+import numpy as np
 import os
 import re
 
@@ -64,15 +69,6 @@ async def home():
     return FileResponse("static/index.html")
 
 # ==========================================
-# FRONTEND
-# ==========================================
-
-@app.get("/app")
-async def frontend():
-
-    return FileResponse("static/index.html")
-
-# ==========================================
 # DETECT COLUMN TYPES
 # ==========================================
 
@@ -80,57 +76,25 @@ def detect_column_type(series, column_name):
 
     clean_series = series.dropna()
 
-    # vazio
     if len(clean_series) == 0:
         return "unknown"
-
-    # ==========================================
-    # NUMÉRICO
-    # ==========================================
 
     if pd.api.types.is_numeric_dtype(clean_series):
         return "numeric"
 
-    # ==========================================
-    # STRING SAMPLE
-    # ==========================================
-
     sample_values = clean_series.astype(str).head(20)
-
-    # ==========================================
-    # TEMPORAL PATTERNS
-    # ==========================================
 
     temporal_patterns = [
 
-        # 2024-01
         r"^\d{4}-\d{2}$",
-
-        # 2024/01
         r"^\d{4}/\d{2}$",
-
-        # 2024Q1
         r"^\d{4}Q[1-4]$",
-
-        # 2024q1
         r"^\d{4}q[1-4]$",
-
-        # 2024M01
         r"^\d{4}M\d{2}$",
-
-        # Jan-24
         r"^[A-Za-z]{3}-\d{2}$",
-
-        # Jan/24
         r"^[A-Za-z]{3}/\d{2}$",
-
-        # YYYY
         r"^\d{4}$"
     ]
-
-    # ==========================================
-    # TEST TEMPORAL PATTERNS
-    # ==========================================
 
     temporal_matches = 0
 
@@ -151,61 +115,10 @@ def detect_column_type(series, column_name):
     if temporal_ratio > 0.6:
         return "datetime"
 
-    # ==========================================
-    # TEMPORAL KEYWORDS
-    # ==========================================
-
-    date_keywords = [
-
-        "data",
-        "date",
-        "periodo",
-        "period",
-        "mes",
-        "month",
-        "ano",
-        "year",
-        "quarter",
-        "trimestre",
-        "reference"
-    ]
-
-    column_lower = str(column_name).lower()
-
-    has_date_keyword = any(
-        keyword in column_lower
-        for keyword in date_keywords
-    )
-
-    # ==========================================
-    # FALLBACK DATETIME
-    # ==========================================
-
-    if has_date_keyword:
-
-        try:
-
-            converted = pd.to_datetime(
-                clean_series,
-                errors="coerce"
-            )
-
-            valid_ratio = converted.notnull().mean()
-
-            if valid_ratio > 0.8:
-                return "datetime"
-
-        except:
-            pass
-
-    # ==========================================
-    # DEFAULT
-    # ==========================================
-
     return "categorical"
 
 # ==========================================
-# UPLOAD EXCEL
+# UPLOAD
 # ==========================================
 
 @app.post("/upload")
@@ -215,10 +128,6 @@ async def upload_excel(file: UploadFile = File(...)):
 
         global uploaded_df
 
-        # ==========================================
-        # SAVE FILE
-        # ==========================================
-
         file_path = os.path.join(
             UPLOAD_FOLDER,
             file.filename
@@ -227,18 +136,9 @@ async def upload_excel(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
 
-        # ==========================================
-        # READ EXCEL
-        # ==========================================
-
         df = pd.read_excel(file_path)
 
-        # salva dataframe global
         uploaded_df = df.copy()
-
-        # ==========================================
-        # COLUMN ANALYSIS
-        # ==========================================
 
         columns_analysis = []
 
@@ -253,14 +153,12 @@ async def upload_excel(file: UploadFile = File(...)):
                 col
             )
 
-            # detecta coluna temporal
             if (
                 detected_type == "datetime"
                 and detected_date_column is None
             ):
                 detected_date_column = str(col)
 
-            # detecta numéricas
             if detected_type == "numeric":
                 numeric_columns.append(str(col))
 
@@ -279,18 +177,10 @@ async def upload_excel(file: UploadFile = File(...)):
                 )
             })
 
-        # ==========================================
-        # TARGET VARIABLE
-        # ==========================================
-
         target_variable = None
 
         if len(numeric_columns) > 0:
             target_variable = numeric_columns[0]
-
-        # ==========================================
-        # FEATURES
-        # ==========================================
 
         features = []
 
@@ -299,56 +189,11 @@ async def upload_excel(file: UploadFile = File(...)):
             if col != target_variable:
                 features.append(str(col))
 
-        # ==========================================
-        # DATA PREPARATION
-        # ==========================================
-
-        prepared_rows = 0
-
-        if detected_date_column is not None:
-
-            try:
-
-                df[detected_date_column] = pd.to_datetime(
-                    df[detected_date_column],
-                    errors="coerce"
-                )
-
-                # remove inválidas
-                df = df.dropna(
-                    subset=[detected_date_column]
-                )
-
-                # ordena cronologicamente
-                df = df.sort_values(
-                    by=detected_date_column
-                )
-
-            except:
-                pass
-
-        # remove missing target
-        if target_variable is not None:
-
-            df = df.dropna(
-                subset=[target_variable]
-            )
-
-        prepared_rows = len(df)
-
-        # ==========================================
-        # PREVIEW
-        # ==========================================
-
         preview_data = (
             df.head(5)
             .astype(str)
             .to_dict(orient="records")
         )
-
-        # ==========================================
-        # RESPONSE
-        # ==========================================
 
         response_data = {
 
@@ -368,17 +213,6 @@ async def upload_excel(file: UploadFile = File(...)):
                 "target_variable": target_variable,
 
                 "features": features
-            },
-
-            "prepared_dataset": {
-
-                "rows_after_cleaning": int(prepared_rows),
-
-                "target_variable": target_variable,
-
-                "features": features,
-
-                "date_column": detected_date_column
             },
 
             "preview": preview_data
@@ -403,59 +237,23 @@ async def run_model(request: ModelRequest):
 
         global uploaded_df
 
-        if uploaded_df is None:
-
-            return {
-                "error": "Nenhum dataset carregado."
-            }
-
         df = uploaded_df.copy()
-
-        # ==========================================
-        # VARIABLES
-        # ==========================================
 
         target_variable = request.target_variable
 
         features = request.features
 
-        # ==========================================
-        # VALIDATION
-        # ==========================================
-
-        if len(features) == 0:
-
-            return {
-                "error": "Selecione ao menos uma feature."
-            }
-
-        # ==========================================
-        # MODEL DATASET
-        # ==========================================
-
         model_df = df[
             [target_variable] + features
         ].dropna()
-
-        # ==========================================
-        # X AND Y
-        # ==========================================
 
         X = model_df[features]
 
         y = model_df[target_variable]
 
-        # ==========================================
-        # MODEL
-        # ==========================================
-
         model = LinearRegression()
 
         model.fit(X, y)
-
-        # ==========================================
-        # PREDICTIONS
-        # ==========================================
 
         predictions = model.predict(X)
 
@@ -464,6 +262,18 @@ async def run_model(request: ModelRequest):
         # ==========================================
 
         r2 = r2_score(y, predictions)
+
+        mae = mean_absolute_error(
+            y,
+            predictions
+        )
+
+        rmse = np.sqrt(
+            mean_squared_error(
+                y,
+                predictions
+            )
+        )
 
         # ==========================================
         # COEFFICIENTS
@@ -479,6 +289,36 @@ async def run_model(request: ModelRequest):
             coefficients[feature] = float(coef)
 
         # ==========================================
+        # INTERPRETATION
+        # ==========================================
+
+        interpretation = ""
+
+        if r2 >= 0.8:
+
+            interpretation = (
+                "O modelo apresentou excelente ajuste estatístico."
+            )
+
+        elif r2 >= 0.6:
+
+            interpretation = (
+                "O modelo apresentou bom ajuste estatístico."
+            )
+
+        elif r2 >= 0.4:
+
+            interpretation = (
+                "O modelo apresentou ajuste moderado."
+            )
+
+        else:
+
+            interpretation = (
+                "O modelo apresentou baixo poder explicativo."
+            )
+
+        # ==========================================
         # RESPONSE
         # ==========================================
 
@@ -490,9 +330,23 @@ async def run_model(request: ModelRequest):
 
                 "r2": float(r2),
 
+                "mae": float(mae),
+
+                "rmse": float(rmse),
+
                 "intercept": float(model.intercept_),
 
-                "coefficients": coefficients
+                "coefficients": coefficients,
+
+                "actual_values": list(
+                    y.astype(float)
+                ),
+
+                "predicted_values": list(
+                    predictions.astype(float)
+                ),
+
+                "interpretation": interpretation
             }
         }
 
