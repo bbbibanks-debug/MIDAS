@@ -22,20 +22,57 @@ def home():
     return {"message": "MIDAS ONLINE"}
 
 
-def detect_column_type(series):
+def detect_column_type(series, column_name):
 
-    # tenta detectar datas
-    try:
-        pd.to_datetime(series.dropna(), errors='raise')
-        return "datetime"
-    except:
-        pass
+    # remove nulos
+    clean_series = series.dropna()
 
-    # numérico
-    if pd.api.types.is_numeric_dtype(series):
+    # vazio
+    if len(clean_series) == 0:
+        return "unknown"
+
+    # verifica numérico primeiro
+    if pd.api.types.is_numeric_dtype(clean_series):
         return "numeric"
 
-    # texto/categórico
+    # palavras comuns de data
+    date_keywords = [
+        "data",
+        "date",
+        "periodo",
+        "period",
+        "mes",
+        "month",
+        "ano",
+        "year"
+    ]
+
+    column_lower = column_name.lower()
+
+    has_date_keyword = any(
+        keyword in column_lower
+        for keyword in date_keywords
+    )
+
+    # só tenta datetime se nome sugerir tempo
+    if has_date_keyword:
+
+        try:
+
+            converted = pd.to_datetime(
+                clean_series,
+                errors='coerce'
+            )
+
+            valid_ratio = converted.notnull().mean()
+
+            # pelo menos 80% válidos
+            if valid_ratio > 0.8:
+                return "datetime"
+
+        except:
+            pass
+
     return "categorical"
 
 
