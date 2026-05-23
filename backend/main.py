@@ -93,7 +93,7 @@ async def upload_excel(file: UploadFile = File(...)):
 
     for col in df.columns:
 
-        detected_type = detect_column_type(df[col])
+        detected_type = detect_column_type(df[col], col)
 
         if detected_type == "datetime" and detected_date_column is None:
             detected_date_column = col
