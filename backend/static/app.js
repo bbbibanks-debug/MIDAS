@@ -110,12 +110,16 @@ async function uploadFile() {
         `;
 
         // =========================
-        // SELECT OPTIONS
+        // NUMERIC COLUMNS
         // =========================
 
         const numericColumns = data.columns_analysis
             .filter(col => col.detected_type === "numeric")
             .map(col => col.name);
+
+        // =========================
+        // DATETIME COLUMNS
+        // =========================
 
         const datetimeColumns = data.columns_analysis
             .filter(col => col.detected_type === "datetime")
@@ -248,11 +252,13 @@ async function uploadFile() {
 
                 </button>
 
+                <div id="modelResult"></div>
+
             </div>
         `;
 
         // =========================
-        // COLUMNS ANALYSIS
+        // COLUMNS TABLE
         // =========================
 
         let columnsTable = `
@@ -316,7 +322,7 @@ ${JSON.stringify(data.preview, null, 2)}
         `;
 
         // =========================
-        // RENDER FINAL
+        // FINAL RENDER
         // =========================
 
         resultDiv.innerHTML = `
@@ -351,11 +357,18 @@ ${error}
     }
 }
 
-// =========================
+// ==========================================
 // RUN MODEL
-// =========================
+// ==========================================
 
-function runModel() {
+async function runModel() {
+
+    const modelResultDiv =
+        document.getElementById("modelResult");
+
+    // =========================
+    // CAPTURE VALUES
+    // =========================
 
     const dateColumn =
         document.getElementById("dateColumn").value;
@@ -376,16 +389,161 @@ function runModel() {
             );
         });
 
-    console.log({
+    // =========================
+    // VALIDATION
+    // =========================
 
-        date_column: dateColumn,
+    if (checkedFeatures.length === 0) {
 
-        target_variable: targetVariable,
+        alert(
+            "Selecione ao menos uma variável explicativa."
+        );
 
-        features: checkedFeatures
-    });
+        return;
+    }
 
-    alert(
-        "Configuração do modelo capturada com sucesso."
-    );
+    // =========================
+    // LOADING
+    // =========================
+
+    modelResultDiv.innerHTML = `
+        <p>Executando modelo MIDAS...</p>
+    `;
+
+    try {
+
+        // =========================
+        // REQUEST
+        // =========================
+
+        const response = await fetch(
+            "/run-model",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    date_column: dateColumn,
+
+                    target_variable: targetVariable,
+
+                    features: checkedFeatures
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        // =========================
+        // ERROR
+        // =========================
+
+        if (data.error) {
+
+            modelResultDiv.innerHTML = `
+
+                <div class="card error">
+
+                    <h2>Erro</h2>
+
+                    <pre>
+${data.error}
+                    </pre>
+
+                </div>
+            `;
+
+            return;
+        }
+
+        // =========================
+        // COEFFICIENTS
+        // =========================
+
+        let coefficientsHtml = "";
+
+        Object.entries(
+            data.model_results.coefficients
+        ).forEach(([feature, coef]) => {
+
+            coefficientsHtml += `
+
+                <tr>
+
+                    <td>${feature}</td>
+
+                    <td>${coef.toFixed(4)}</td>
+
+                </tr>
+            `;
+        });
+
+        // =========================
+        // RESULT RENDER
+        // =========================
+
+        modelResultDiv.innerHTML = `
+
+            <div class="card">
+
+                <h2>📈 Resultados do Modelo</h2>
+
+                <p>
+                    <strong>Observações:</strong>
+                    ${data.model_results.observations}
+                </p>
+
+                <p>
+                    <strong>R²:</strong>
+                    ${data.model_results.r2.toFixed(4)}
+                </p>
+
+                <p>
+                    <strong>Intercepto:</strong>
+                    ${data.model_results.intercept.toFixed(4)}
+                </p>
+
+                <h3>Coeficientes</h3>
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Variável</th>
+                            <th>Coeficiente</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        ${coefficientsHtml}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+        `;
+
+    } catch (error) {
+
+        console.error(error);
+
+        modelResultDiv.innerHTML = `
+
+            <div class="card error">
+
+                <h2>Erro</h2>
+
+                <pre>
+${error}
+                </pre>
+
+            </div>
+        `;
+    }
 }
