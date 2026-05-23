@@ -21,23 +21,11 @@ async function uploadFile() {
         return;
     }
 
-    // ==========================================
-    // LOADING STATES
-    // ==========================================
-
     document.getElementById(
         "modelConfig"
     ).innerHTML = `
         <div class="empty-state">
             Analisando dataset...
-        </div>
-    `;
-
-    document.getElementById(
-        "previewTable"
-    ).innerHTML = `
-        <div class="empty-state">
-            Carregando preview...
         </div>
     `;
 
@@ -61,10 +49,6 @@ async function uploadFile() {
         const data =
             await response.json();
 
-        // ==========================================
-        // ERROR
-        // ==========================================
-
         if (data.error) {
 
             showError(data.error);
@@ -72,21 +56,9 @@ async function uploadFile() {
             return;
         }
 
-        // ==========================================
-        // SUMMARY
-        // ==========================================
-
         updateSummary(data);
 
-        // ==========================================
-        // MODEL CONFIG
-        // ==========================================
-
         renderModelConfig(data);
-
-        // ==========================================
-        // PREVIEW
-        // ==========================================
 
         renderPreview(data.preview);
 
@@ -121,10 +93,7 @@ function updateSummary(data) {
         ).length;
 
     const datetimeCount =
-        data.columns_analysis.filter(
-            col =>
-                col.detected_type === "datetime"
-        ).length;
+        data.possible_time_columns.length;
 
     document.getElementById(
         "summaryNumeric"
@@ -151,21 +120,12 @@ function renderModelConfig(data) {
             )
             .map(col => col.name);
 
-    const datetimeColumns =
-        data.columns_analysis
-            .filter(
-                col =>
-                    col.detected_type === "datetime"
-            )
-            .map(col => col.name);
-
-    // ==========================================
-    // DATE OPTIONS
-    // ==========================================
+    const possibleTimeColumns =
+        data.possible_time_columns;
 
     let dateOptions = "";
 
-    datetimeColumns.forEach(col => {
+    possibleTimeColumns.forEach(col => {
 
         const selected =
             col === data.suggestions.date_column
@@ -181,10 +141,6 @@ function renderModelConfig(data) {
             </option>
         `;
     });
-
-    // ==========================================
-    // TARGET OPTIONS
-    // ==========================================
 
     let targetOptions = "";
 
@@ -204,10 +160,6 @@ function renderModelConfig(data) {
             </option>
         `;
     });
-
-    // ==========================================
-    // FEATURES
-    // ==========================================
 
     let featuresHtml = "";
 
@@ -234,17 +186,11 @@ function renderModelConfig(data) {
         `;
     });
 
-    // ==========================================
-    // RENDER
-    // ==========================================
-
     document.getElementById(
         "modelConfig"
     ).innerHTML = `
 
         <div class="config-grid">
-
-            <!-- DATE -->
 
             <div class="config-box">
 
@@ -258,14 +204,7 @@ function renderModelConfig(data) {
 
                 </select>
 
-                <div class="suggestion-box">
-
-                    Detectada automaticamente
-                </div>
-
             </div>
-
-            <!-- TARGET -->
 
             <div class="config-box">
 
@@ -279,16 +218,9 @@ function renderModelConfig(data) {
 
                 </select>
 
-                <div class="suggestion-box">
-
-                    Sugestão MIDAS
-                </div>
-
             </div>
 
         </div>
-
-        <!-- FEATURES -->
 
         <div class="form-group">
 
@@ -358,10 +290,6 @@ async function runModel() {
         return;
     }
 
-    // ==========================================
-    // LOADING
-    // ==========================================
-
     modelResultDiv.innerHTML = `
 
         <div class="empty-state">
@@ -403,11 +331,22 @@ async function runModel() {
             return;
         }
 
+        modelResultDiv.innerHTML = `
+
+            <div class="empty-state">
+
+                Modelo executado com sucesso.
+
+            </div>
+        `;
+
         renderMetrics(data);
 
         renderCoefficients(data);
 
         renderChart(data);
+
+        renderDownloadButton();
 
     } catch (error) {
 
@@ -437,11 +376,7 @@ function renderMetrics(data) {
             </div>
 
             <div class="metric-value">
-                ${data.model_results.r2.toFixed(4)}
-            </div>
-
-            <div class="metric-description">
-                Qualidade do ajuste
+                ${data.model_results.r2.toFixed(2)}
             </div>
 
         </div>
@@ -453,11 +388,7 @@ function renderMetrics(data) {
             </div>
 
             <div class="metric-value">
-                ${data.model_results.mae.toFixed(4)}
-            </div>
-
-            <div class="metric-description">
-                Erro absoluto médio
+                ${data.model_results.mae.toFixed(2)}
             </div>
 
         </div>
@@ -469,11 +400,7 @@ function renderMetrics(data) {
             </div>
 
             <div class="metric-value">
-                ${data.model_results.rmse.toFixed(4)}
-            </div>
-
-            <div class="metric-description">
-                Erro quadrático médio
+                ${data.model_results.rmse.toFixed(2)}
             </div>
 
         </div>
@@ -488,10 +415,6 @@ function renderMetrics(data) {
                 ${data.model_results.observations}
             </div>
 
-            <div class="metric-description">
-                Amostra utilizada
-            </div>
-
         </div>
 
         <div class="metric-card">
@@ -501,11 +424,7 @@ function renderMetrics(data) {
             </div>
 
             <div class="metric-value">
-                ${data.model_results.intercept.toFixed(4)}
-            </div>
-
-            <div class="metric-description">
-                Constante do modelo
+                ${data.model_results.intercept.toFixed(2)}
             </div>
 
         </div>
@@ -530,7 +449,7 @@ function renderCoefficients(data) {
 
                 <td>${feature}</td>
 
-                <td>${coef.toFixed(4)}</td>
+                <td>${coef.toFixed(2)}</td>
 
             </tr>
         `;
@@ -652,9 +571,7 @@ function renderChart(data) {
         data: {
 
             labels:
-                data.model_results.actual_values.map(
-                    (_, i) => i + 1
-                ),
+                data.model_results.time_values,
 
             datasets: [
 
@@ -685,6 +602,36 @@ function renderChart(data) {
             maintainAspectRatio: false
         }
     });
+}
+
+// ==========================================
+// DOWNLOAD BUTTON
+// ==========================================
+
+function renderDownloadButton() {
+
+    const metricsGrid =
+        document.getElementById(
+            "metricsGrid"
+        );
+
+    metricsGrid.innerHTML += `
+
+        <div class="metric-card">
+
+            <div class="metric-title">
+                Exportação
+            </div>
+
+            <a
+                href="/download-predictions"
+                class="download-button"
+            >
+                Baixar Excel
+            </a>
+
+        </div>
+    `;
 }
 
 // ==========================================
