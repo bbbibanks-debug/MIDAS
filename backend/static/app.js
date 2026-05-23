@@ -1,13 +1,80 @@
 let chartInstance = null;
 
 // ==========================================
+// ACCORDION
+// ==========================================
+
+function toggleAccordion(id, headerElement) {
+
+    const content =
+        document.getElementById(id);
+
+    const isCollapsed =
+        content.classList.contains(
+            "collapsed"
+        );
+
+    // fecha todos
+    document
+        .querySelectorAll(
+            ".accordion-content"
+        )
+        .forEach(item => {
+
+            item.classList.add(
+                "collapsed"
+            );
+        });
+
+    document
+        .querySelectorAll(
+            ".accordion-header"
+        )
+        .forEach(item => {
+
+            item.classList.remove(
+                "active"
+            );
+        });
+
+    // abre selecionado
+    if (isCollapsed) {
+
+        content.classList.remove(
+            "collapsed"
+        );
+
+        headerElement.classList.add(
+            "active"
+        );
+    }
+}
+
+// ==========================================
+// FORMAT NUMBER
+// ==========================================
+
+function formatNumber(value) {
+
+    return Number(value).toLocaleString(
+        "pt-BR",
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    );
+}
+
+// ==========================================
 // UPLOAD FILE
 // ==========================================
 
 async function uploadFile() {
 
     const fileInput =
-        document.getElementById("fileInput");
+        document.getElementById(
+            "fileInput"
+        );
 
     const file =
         fileInput.files[0];
@@ -24,12 +91,16 @@ async function uploadFile() {
     document.getElementById(
         "modelConfig"
     ).innerHTML = `
+
         <div class="empty-state">
+
             Analisando dataset...
+
         </div>
     `;
 
-    const formData = new FormData();
+    const formData =
+        new FormData();
 
     formData.append(
         "file",
@@ -79,12 +150,16 @@ function updateSummary(data) {
     document.getElementById(
         "summaryRows"
     ).innerText =
-        data.dataset_info.rows;
+        formatNumber(
+            data.dataset_info.rows
+        );
 
     document.getElementById(
         "summaryColumns"
     ).innerText =
-        data.dataset_info.columns;
+        formatNumber(
+            data.dataset_info.columns
+        );
 
     const numericCount =
         data.columns_analysis.filter(
@@ -98,12 +173,16 @@ function updateSummary(data) {
     document.getElementById(
         "summaryNumeric"
     ).innerText =
-        numericCount;
+        formatNumber(
+            numericCount
+        );
 
     document.getElementById(
         "summaryDatetime"
     ).innerText =
-        datetimeCount;
+        formatNumber(
+            datetimeCount
+        );
 }
 
 // ==========================================
@@ -123,6 +202,10 @@ function renderModelConfig(data) {
     const possibleTimeColumns =
         data.possible_time_columns;
 
+    // ==========================================
+    // DATE OPTIONS
+    // ==========================================
+
     let dateOptions = "";
 
     possibleTimeColumns.forEach(col => {
@@ -133,6 +216,7 @@ function renderModelConfig(data) {
             : "";
 
         dateOptions += `
+
             <option
                 value="${col}"
                 ${selected}
@@ -141,6 +225,10 @@ function renderModelConfig(data) {
             </option>
         `;
     });
+
+    // ==========================================
+    // TARGET OPTIONS
+    // ==========================================
 
     let targetOptions = "";
 
@@ -152,6 +240,7 @@ function renderModelConfig(data) {
             : "";
 
         targetOptions += `
+
             <option
                 value="${col}"
                 ${selected}
@@ -161,12 +250,18 @@ function renderModelConfig(data) {
         `;
     });
 
+    // ==========================================
+    // FEATURES
+    // ==========================================
+
     let featuresHtml = "";
 
     numericColumns.forEach(col => {
 
         const checked =
-            data.suggestions.features.includes(col)
+            data.suggestions.features.includes(
+                col
+            )
             ? "checked"
             : "";
 
@@ -186,11 +281,17 @@ function renderModelConfig(data) {
         `;
     });
 
+    // ==========================================
+    // RENDER
+    // ==========================================
+
     document.getElementById(
         "modelConfig"
     ).innerHTML = `
 
         <div class="config-grid">
+
+            <!-- TIME -->
 
             <div class="config-box">
 
@@ -204,7 +305,15 @@ function renderModelConfig(data) {
 
                 </select>
 
+                <div class="suggestion-box">
+
+                    Detectada automaticamente
+
+                </div>
+
             </div>
+
+            <!-- TARGET -->
 
             <div class="config-box">
 
@@ -218,14 +327,24 @@ function renderModelConfig(data) {
 
                 </select>
 
+                <div class="suggestion-box">
+
+                    Sugestão MIDAS
+
+                </div>
+
             </div>
 
         </div>
 
+        <!-- FEATURES -->
+
         <div class="form-group">
 
             <label>
+
                 Variáveis Explicativas
+
             </label>
 
             <div class="features-container">
@@ -240,7 +359,9 @@ function renderModelConfig(data) {
             class="primary-button"
             onclick="runModel()"
         >
+
             Executar Modelo MIDAS
+
         </button>
 
         <div id="modelResult"></div>
@@ -281,7 +402,9 @@ async function runModel() {
             );
         });
 
-    if (checkedFeatures.length === 0) {
+    if (
+        checkedFeatures.length === 0
+    ) {
 
         alert(
             "Selecione ao menos uma variável."
@@ -289,6 +412,10 @@ async function runModel() {
 
         return;
     }
+
+    // ==========================================
+    // LOADING
+    // ==========================================
 
     modelResultDiv.innerHTML = `
 
@@ -307,16 +434,20 @@ async function runModel() {
                 method: "POST",
 
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type":
+                        "application/json"
                 },
 
                 body: JSON.stringify({
 
-                    date_column: dateColumn,
+                    date_column:
+                        dateColumn,
 
-                    target_variable: targetVariable,
+                    target_variable:
+                        targetVariable,
 
-                    features: checkedFeatures
+                    features:
+                        checkedFeatures
                 })
             }
         );
@@ -331,14 +462,22 @@ async function runModel() {
             return;
         }
 
+        // ==========================================
+        // SUCCESS MESSAGE
+        // ==========================================
+
         modelResultDiv.innerHTML = `
 
-            <div class="empty-state">
+            <div class="suggestion-box">
 
                 Modelo executado com sucesso.
 
             </div>
         `;
+
+        // ==========================================
+        // RENDER
+        // ==========================================
 
         renderMetrics(data);
 
@@ -372,11 +511,23 @@ function renderMetrics(data) {
         <div class="metric-card">
 
             <div class="metric-title">
+
                 R²
+
             </div>
 
             <div class="metric-value">
-                ${data.model_results.r2.toFixed(2)}
+
+                ${formatNumber(
+                    data.model_results.r2
+                )}
+
+            </div>
+
+            <div class="metric-description">
+
+                Qualidade do ajuste
+
             </div>
 
         </div>
@@ -384,11 +535,23 @@ function renderMetrics(data) {
         <div class="metric-card">
 
             <div class="metric-title">
+
                 MAE
+
             </div>
 
             <div class="metric-value">
-                ${data.model_results.mae.toFixed(2)}
+
+                ${formatNumber(
+                    data.model_results.mae
+                )}
+
+            </div>
+
+            <div class="metric-description">
+
+                Erro absoluto médio
+
             </div>
 
         </div>
@@ -396,11 +559,23 @@ function renderMetrics(data) {
         <div class="metric-card">
 
             <div class="metric-title">
+
                 RMSE
+
             </div>
 
             <div class="metric-value">
-                ${data.model_results.rmse.toFixed(2)}
+
+                ${formatNumber(
+                    data.model_results.rmse
+                )}
+
+            </div>
+
+            <div class="metric-description">
+
+                Erro quadrático médio
+
             </div>
 
         </div>
@@ -408,11 +583,23 @@ function renderMetrics(data) {
         <div class="metric-card">
 
             <div class="metric-title">
+
                 Observações
+
             </div>
 
             <div class="metric-value">
-                ${data.model_results.observations}
+
+                ${formatNumber(
+                    data.model_results.observations
+                )}
+
+            </div>
+
+            <div class="metric-description">
+
+                Amostra utilizada
+
             </div>
 
         </div>
@@ -420,12 +607,43 @@ function renderMetrics(data) {
         <div class="metric-card">
 
             <div class="metric-title">
+
                 Intercepto
+
             </div>
 
             <div class="metric-value">
-                ${data.model_results.intercept.toFixed(2)}
+
+                ${formatNumber(
+                    data.model_results.intercept
+                )}
+
             </div>
+
+            <div class="metric-description">
+
+                Constante do modelo
+
+            </div>
+
+        </div>
+
+        <div class="metric-card">
+
+            <div class="metric-title">
+
+                Exportação
+
+            </div>
+
+            <a
+                href="/download-predictions"
+                class="download-button"
+            >
+
+                Baixar Excel
+
+            </a>
 
         </div>
     `;
@@ -447,9 +665,17 @@ function renderCoefficients(data) {
 
             <tr>
 
-                <td>${feature}</td>
+                <td>
 
-                <td>${coef.toFixed(2)}</td>
+                    ${feature}
+
+                </td>
+
+                <td>
+
+                    ${formatNumber(coef)}
+
+                </td>
 
             </tr>
         `;
@@ -465,9 +691,13 @@ function renderCoefficients(data) {
 
                 <tr>
 
-                    <th>Variável</th>
+                    <th>
+                        Variável
+                    </th>
 
-                    <th>Coeficiente</th>
+                    <th>
+                        Coeficiente
+                    </th>
 
                 </tr>
 
@@ -502,7 +732,12 @@ function renderPreview(preview) {
     columns.forEach(col => {
 
         thead += `
-            <th>${col}</th>
+
+            <th>
+
+                ${col}
+
+            </th>
         `;
     });
 
@@ -515,7 +750,12 @@ function renderPreview(preview) {
         columns.forEach(col => {
 
             tbody += `
-                <td>${row[col]}</td>
+
+                <td>
+
+                    ${row[col]}
+
+                </td>
             `;
         });
 
@@ -581,7 +821,9 @@ function renderChart(data) {
                     data:
                         data.model_results.actual_values,
 
-                    borderWidth: 2
+                    borderWidth: 3,
+
+                    tension: 0.3
                 },
 
                 {
@@ -590,7 +832,9 @@ function renderChart(data) {
                     data:
                         data.model_results.predicted_values,
 
-                    borderWidth: 2
+                    borderWidth: 3,
+
+                    tension: 0.3
                 }
             ]
         },
@@ -599,39 +843,31 @@ function renderChart(data) {
 
             responsive: true,
 
-            maintainAspectRatio: false
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+
+                    position: "top"
+                }
+            },
+
+            scales: {
+
+                y: {
+
+                    ticks: {
+
+                        callback: function(value) {
+
+                            return formatNumber(value);
+                        }
+                    }
+                }
+            }
         }
     });
-}
-
-// ==========================================
-// DOWNLOAD BUTTON
-// ==========================================
-
-function renderDownloadButton() {
-
-    const metricsGrid =
-        document.getElementById(
-            "metricsGrid"
-        );
-
-    metricsGrid.innerHTML += `
-
-        <div class="metric-card">
-
-            <div class="metric-title">
-                Exportação
-            </div>
-
-            <a
-                href="/download-predictions"
-                class="download-button"
-            >
-                Baixar Excel
-            </a>
-
-        </div>
-    `;
 }
 
 // ==========================================
@@ -648,9 +884,17 @@ function showError(error) {
 
         <div class="card error">
 
-            <h2>Erro</h2>
+            <h2>
 
-            <pre>${error}</pre>
+                Erro
+
+            </h2>
+
+            <pre>
+
+${error}
+
+            </pre>
 
         </div>
     `;
