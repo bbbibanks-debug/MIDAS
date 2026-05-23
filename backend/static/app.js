@@ -1,3 +1,9 @@
+let chartInstance = null;
+
+// ==========================================
+// UPLOAD FILE
+// ==========================================
+
 async function uploadFile() {
 
     const fileInput = document.getElementById("fileInput");
@@ -6,7 +12,6 @@ async function uploadFile() {
 
     const file = fileInput.files[0];
 
-    // valida arquivo
     if (!file) {
 
         alert("Selecione um arquivo Excel.");
@@ -14,12 +19,10 @@ async function uploadFile() {
         return;
     }
 
-    // loading
     resultDiv.innerHTML = `
         <p>Analisando planilha...</p>
     `;
 
-    // formdata
     const formData = new FormData();
 
     formData.append("file", file);
@@ -34,20 +37,30 @@ async function uploadFile() {
             }
         );
 
-        if (!response.ok) {
-
-            throw new Error(
-                `Erro HTTP: ${response.status}`
-            );
-        }
-
         const data = await response.json();
 
-        // =========================
+        if (data.error) {
+
+            resultDiv.innerHTML = `
+
+                <div class="card error">
+
+                    <h2>Erro</h2>
+
+                    <pre>${data.error}</pre>
+
+                </div>
+            `;
+
+            return;
+        }
+
+        // ==========================================
         // DATASET INFO
-        // =========================
+        // ==========================================
 
         const datasetInfo = `
+
             <div class="card">
 
                 <h2>📊 Dataset</h2>
@@ -65,23 +78,24 @@ async function uploadFile() {
             </div>
         `;
 
-        // =========================
+        // ==========================================
         // SUGGESTIONS
-        // =========================
+        // ==========================================
 
         const suggestions = `
+
             <div class="card">
 
                 <h2>🧠 Sugestões Inteligentes</h2>
 
                 <p>
                     <strong>Coluna temporal:</strong>
-                    ${data.suggestions.date_column}
+                    ${data.suggestions.date_column || "Não detectada"}
                 </p>
 
                 <p>
                     <strong>Variável alvo:</strong>
-                    ${data.suggestions.target_variable}
+                    ${data.suggestions.target_variable || "Não detectada"}
                 </p>
 
                 <p>
@@ -92,42 +106,25 @@ async function uploadFile() {
             </div>
         `;
 
-        // =========================
-        // PREPARED DATASET
-        // =========================
-
-        const preparedDataset = `
-            <div class="card">
-
-                <h2>🧹 Dataset Preparado</h2>
-
-                <p>
-                    <strong>Linhas válidas:</strong>
-                    ${data.prepared_dataset.rows_after_cleaning}
-                </p>
-
-            </div>
-        `;
-
-        // =========================
+        // ==========================================
         // NUMERIC COLUMNS
-        // =========================
+        // ==========================================
 
         const numericColumns = data.columns_analysis
             .filter(col => col.detected_type === "numeric")
             .map(col => col.name);
 
-        // =========================
+        // ==========================================
         // DATETIME COLUMNS
-        // =========================
+        // ==========================================
 
         const datetimeColumns = data.columns_analysis
             .filter(col => col.detected_type === "datetime")
             .map(col => col.name);
 
-        // =========================
+        // ==========================================
         // DATE OPTIONS
-        // =========================
+        // ==========================================
 
         let dateOptions = "";
 
@@ -145,9 +142,9 @@ async function uploadFile() {
             `;
         });
 
-        // =========================
+        // ==========================================
         // TARGET OPTIONS
-        // =========================
+        // ==========================================
 
         let targetOptions = "";
 
@@ -165,9 +162,9 @@ async function uploadFile() {
             `;
         });
 
-        // =========================
+        // ==========================================
         // FEATURE CHECKBOXES
-        // =========================
+        // ==========================================
 
         let featureCheckboxes = "";
 
@@ -194,9 +191,9 @@ async function uploadFile() {
             `;
         });
 
-        // =========================
+        // ==========================================
         // MODEL CONFIG
-        // =========================
+        // ==========================================
 
         const modelConfig = `
 
@@ -257,11 +254,12 @@ async function uploadFile() {
             </div>
         `;
 
-        // =========================
+        // ==========================================
         // COLUMNS TABLE
-        // =========================
+        // ==========================================
 
         let columnsTable = `
+
             <div class="card">
 
                 <h2>📋 Análise das Colunas</h2>
@@ -269,12 +267,16 @@ async function uploadFile() {
                 <table>
 
                     <thead>
+
                         <tr>
+
                             <th>Coluna</th>
                             <th>Tipo</th>
                             <th>Missing</th>
                             <th>Únicos</th>
+
                         </tr>
+
                     </thead>
 
                     <tbody>
@@ -283,6 +285,7 @@ async function uploadFile() {
         data.columns_analysis.forEach(col => {
 
             columnsTable += `
+
                 <tr>
 
                     <td>${col.name}</td>
@@ -298,6 +301,7 @@ async function uploadFile() {
         });
 
         columnsTable += `
+
                     </tbody>
 
                 </table>
@@ -305,11 +309,12 @@ async function uploadFile() {
             </div>
         `;
 
-        // =========================
+        // ==========================================
         // PREVIEW
-        // =========================
+        // ==========================================
 
         const preview = `
+
             <div class="card">
 
                 <h2>👀 Preview</h2>
@@ -321,14 +326,13 @@ ${JSON.stringify(data.preview, null, 2)}
             </div>
         `;
 
-        // =========================
+        // ==========================================
         // FINAL RENDER
-        // =========================
+        // ==========================================
 
         resultDiv.innerHTML = `
             ${datasetInfo}
             ${suggestions}
-            ${preparedDataset}
             ${modelConfig}
             ${columnsTable}
             ${preview}
@@ -344,13 +348,7 @@ ${JSON.stringify(data.preview, null, 2)}
 
                 <h2>Erro</h2>
 
-                <p>
-                    Falha ao processar a planilha.
-                </p>
-
-                <pre>
-${error}
-                </pre>
+                <pre>${error}</pre>
 
             </div>
         `;
@@ -365,10 +363,6 @@ async function runModel() {
 
     const modelResultDiv =
         document.getElementById("modelResult");
-
-    // =========================
-    // CAPTURE VALUES
-    // =========================
 
     const dateColumn =
         document.getElementById("dateColumn").value;
@@ -389,10 +383,6 @@ async function runModel() {
             );
         });
 
-    // =========================
-    // VALIDATION
-    // =========================
-
     if (checkedFeatures.length === 0) {
 
         alert(
@@ -402,19 +392,11 @@ async function runModel() {
         return;
     }
 
-    // =========================
-    // LOADING
-    // =========================
-
     modelResultDiv.innerHTML = `
         <p>Executando modelo MIDAS...</p>
     `;
 
     try {
-
-        // =========================
-        // REQUEST
-        // =========================
 
         const response = await fetch(
             "/run-model",
@@ -438,10 +420,6 @@ async function runModel() {
 
         const data = await response.json();
 
-        // =========================
-        // ERROR
-        // =========================
-
         if (data.error) {
 
             modelResultDiv.innerHTML = `
@@ -450,19 +428,13 @@ async function runModel() {
 
                     <h2>Erro</h2>
 
-                    <pre>
-${data.error}
-                    </pre>
+                    <pre>${data.error}</pre>
 
                 </div>
             `;
 
             return;
         }
-
-        // =========================
-        // COEFFICIENTS
-        // =========================
 
         let coefficientsHtml = "";
 
@@ -482,10 +454,6 @@ ${data.error}
             `;
         });
 
-        // =========================
-        // RESULT RENDER
-        // =========================
-
         modelResultDiv.innerHTML = `
 
             <div class="card">
@@ -503,8 +471,23 @@ ${data.error}
                 </p>
 
                 <p>
+                    <strong>MAE:</strong>
+                    ${data.model_results.mae.toFixed(4)}
+                </p>
+
+                <p>
+                    <strong>RMSE:</strong>
+                    ${data.model_results.rmse.toFixed(4)}
+                </p>
+
+                <p>
                     <strong>Intercepto:</strong>
                     ${data.model_results.intercept.toFixed(4)}
+                </p>
+
+                <p>
+                    <strong>Interpretação:</strong>
+                    ${data.model_results.interpretation}
                 </p>
 
                 <h3>Coeficientes</h3>
@@ -512,10 +495,14 @@ ${data.error}
                 <table>
 
                     <thead>
+
                         <tr>
+
                             <th>Variável</th>
                             <th>Coeficiente</th>
+
                         </tr>
+
                     </thead>
 
                     <tbody>
@@ -526,8 +513,61 @@ ${data.error}
 
                 </table>
 
+                <canvas
+                    id="predictionChart"
+                    height="120"
+                ></canvas>
+
             </div>
         `;
+
+        // ==========================================
+        // CHART
+        // ==========================================
+
+        const ctx =
+            document.getElementById(
+                "predictionChart"
+            );
+
+        if (chartInstance) {
+
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+
+            type: "line",
+
+            data: {
+
+                labels: data.model_results.actual_values.map(
+                    (_, i) => i + 1
+                ),
+
+                datasets: [
+
+                    {
+                        label: "Real",
+                        data: data.model_results.actual_values,
+                        borderWidth: 2
+                    },
+
+                    {
+                        label: "Predito",
+                        data: data.model_results.predicted_values,
+                        borderWidth: 2
+                    }
+                ]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false
+            }
+        });
 
     } catch (error) {
 
@@ -539,9 +579,7 @@ ${data.error}
 
                 <h2>Erro</h2>
 
-                <pre>
-${error}
-                </pre>
+                <pre>${error}</pre>
 
             </div>
         `;
