@@ -1,38 +1,41 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
 
 import pandas as pd
 import os
 
-# =========================
-# INICIALIZAÇÃO APP
-# =========================
+# ==========================================
+# APP
+# ==========================================
 
 app = FastAPI()
 
-# =========================
-# CONFIGURAÇÃO CORS
-# =========================
+# ==========================================
+# CORS
+# ==========================================
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://bbbibanks-debug.github.io/MIDAS/"],
+    allow_origins=[
+        "https://bbbibanks-debug.github.io/MIDAS"
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# =========================
-# PASTA UPLOADS
-# =========================
+# ==========================================
+# UPLOAD FOLDER
+# ==========================================
 
 UPLOAD_FOLDER = "uploads"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# =========================
-# ROTA HOME
-# =========================
+# ==========================================
+# HOME
+# ==========================================
 
 @app.get("/")
 def home():
@@ -41,28 +44,34 @@ def home():
         "message": "MIDAS ONLINE"
     }
 
+# ==========================================
+# OPTIONS ROUTE
+# ==========================================
+
 @app.options("/upload")
 async def upload_options():
-    return {"message": "OK"}
 
-# =========================
-# DETECÇÃO DE TIPOS
-# =========================
+    return {
+        "message": "OK"
+    }
+
+# ==========================================
+# DETECT COLUMN TYPES
+# ==========================================
 
 def detect_column_type(series, column_name):
 
-    # remove nulos
     clean_series = series.dropna()
 
-    # série vazia
+    # vazio
     if len(clean_series) == 0:
         return "unknown"
 
-    # detecta numérico primeiro
+    # numérico primeiro
     if pd.api.types.is_numeric_dtype(clean_series):
         return "numeric"
 
-    # palavras relacionadas a datas
+    # palavras relacionadas a data
     date_keywords = [
         "data",
         "date",
@@ -81,7 +90,7 @@ def detect_column_type(series, column_name):
         for keyword in date_keywords
     )
 
-    # tenta detectar datetime
+    # tenta datetime
     if has_date_keyword:
 
         try:
@@ -93,175 +102,188 @@ def detect_column_type(series, column_name):
 
             valid_ratio = converted.notnull().mean()
 
-            # pelo menos 80% válidos
             if valid_ratio > 0.8:
                 return "datetime"
 
         except:
             pass
 
-    # categórico padrão
     return "categorical"
 
-# =========================
+# ==========================================
 # UPLOAD EXCEL
-# =========================
+# ==========================================
 
 @app.post("/upload")
 async def upload_excel(file: UploadFile = File(...)):
 
-    # salva arquivo
-    file_path = os.path.join(
-        UPLOAD_FOLDER,
-        file.filename
-    )
+    try:
 
-    with open(file_path, "wb") as buffer:
-        buffer.write(await file.read())
-
-    # leitura excel
-    df = pd.read_excel(file_path)
-
-    # =========================
-    # ANÁLISE DAS COLUNAS
-    # =========================
-
-    columns_analysis = []
-
-    detected_date_column = None
-
-    numeric_columns = []
-
-    for col in df.columns:
-
-        detected_type = detect_column_type(
-            df[col],
-            col
+        # salva arquivo
+        file_path = os.path.join(
+            UPLOAD_FOLDER,
+            file.filename
         )
 
-        # detecta coluna temporal
-        if (
-            detected_type == "datetime"
-            and detected_date_column is None
-        ):
-            detected_date_column = col
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
 
-        # detecta numéricas
-        if detected_type == "numeric":
-            numeric_columns.append(col)
+        # lê excel
+        df = pd.read_excel(file_path)
 
-        # análise estrutural
-        columns_analysis.append({
+        # ==========================================
+        # ANALYSIS
+        # ==========================================
 
-            "name": col,
+        columns_analysis = []
 
-            "detected_type": detected_type,
+        detected_date_column = None
 
-            "missing_values": int(
-                df[col].isnull().sum()
-            ),
+        numeric_columns = []
 
-            "unique_values": int(
-                df[col].nunique()
-            )
-        })
+        for col in df.columns:
 
-    # =========================
-    # TARGET VARIABLE
-    # =========================
-
-    target_variable = None
-
-    if len(numeric_columns) > 0:
-        target_variable = numeric_columns[0]
-
-    # =========================
-    # FEATURES
-    # =========================
-
-    features = []
-
-    for col in numeric_columns:
-
-        if col != target_variable:
-            features.append(col)
-
-    # =========================
-    # PREPARAÇÃO DOS DADOS
-    # =========================
-
-    prepared_rows = 0
-
-    # tratamento temporal
-    if detected_date_column is not None:
-
-        try:
-
-            df[detected_date_column] = pd.to_datetime(
-                df[detected_date_column],
-                errors="coerce"
+            detected_type = detect_column_type(
+                df[col],
+                col
             )
 
-            # remove datas inválidas
+            # detecta coluna temporal
+            if (
+                detected_type == "datetime"
+                and detected_date_column is None
+            ):
+                detected_date_column = col
+
+            # detecta colunas numéricas
+            if detected_type == "numeric":
+                numeric_columns.append(col)
+
+            columns_analysis.append({
+
+                "name": str(col),
+
+                "detected_type": str(detected_type),
+
+                "missing_values": int(
+                    df[col].isnull().sum()
+                ),
+
+                "unique_values": int(
+                    df[col].nunique()
+                )
+            })
+
+        # ==========================================
+        # TARGET
+        # ==========================================
+
+        target_variable = None
+
+        if len(numeric_columns) > 0:
+            target_variable = numeric_columns[0]
+
+        # ==========================================
+        # FEATURES
+        # ==========================================
+
+        features = []
+
+        for col in numeric_columns:
+
+            if col != target_variable:
+                features.append(str(col))
+
+        # ==========================================
+        # DATA PREPARATION
+        # ==========================================
+
+        prepared_rows = 0
+
+        # tratamento temporal
+        if detected_date_column is not None:
+
+            try:
+
+                df[detected_date_column] = pd.to_datetime(
+                    df[detected_date_column],
+                    errors="coerce"
+                )
+
+                # remove inválidas
+                df = df.dropna(
+                    subset=[detected_date_column]
+                )
+
+                # ordena cronologicamente
+                df = df.sort_values(
+                    by=detected_date_column
+                )
+
+            except:
+                pass
+
+        # remove missing target
+        if target_variable is not None:
+
             df = df.dropna(
-                subset=[detected_date_column]
+                subset=[target_variable]
             )
 
-            # ordena cronologicamente
-            df = df.sort_values(
-                by=detected_date_column
-            )
+        prepared_rows = len(df)
 
-        except:
-            pass
+        # ==========================================
+        # PREVIEW
+        # ==========================================
 
-    # remove missing target
-    if target_variable is not None:
-
-        df = df.dropna(
-            subset=[target_variable]
+        preview_data = (
+            df.head(5)
+            .astype(str)
+            .to_dict(orient="records")
         )
 
-    prepared_rows = len(df)
+        # ==========================================
+        # RESPONSE
+        # ==========================================
 
-    # =========================
-    # RESPONSE
-    # =========================
+        response_data = {
 
-    return {
+            "dataset_info": {
 
-        "dataset_info": {
+                "rows": int(len(df)),
 
-            "rows": int(len(df)),
+                "columns": int(len(df.columns))
+            },
 
-            "columns": int(len(df.columns))
-        },
+            "columns_analysis": columns_analysis,
 
-        "columns_analysis": columns_analysis,
+            "suggestions": {
 
-        "suggestions": {
+                "date_column": detected_date_column,
 
-            "date_column": detected_date_column,
+                "target_variable": target_variable,
 
-            "target_variable": target_variable,
+                "features": features
+            },
 
-            "features": features
-        },
+            "prepared_dataset": {
 
-        "prepared_dataset": {
+                "rows_after_cleaning": int(prepared_rows),
 
-            "rows_after_cleaning": int(prepared_rows),
+                "target_variable": target_variable,
 
-            "target_variable": target_variable,
+                "features": features,
 
-            "features": features,
+                "date_column": detected_date_column
+            },
 
-            "date_column": detected_date_column
-        },
+            "preview": preview_data
+        }
 
-       "preview": (
-    df.head(5)
-    .astype(str)
-    .to_dict(orient="records")
-)
-    }
+        return jsonable_encoder(response_data)
+
+    except Exception as e:
+
+        return {
+            "error": str(e)
+        }
