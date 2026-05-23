@@ -21,12 +21,16 @@ async function uploadFile() {
 
     try {
 
-        const response = await fetch(
-            "https://midas-7xzm.onrender.com/upload",
-            {
-                method: "POST",
-                body: formData
-            }
+    const response = await fetch(
+    "https://midas-7xzm.onrender.com/upload",
+    {
+        method: "POST",
+        mode: "cors",
+        headers: {
+            "Accept": "application/json"
+        },
+        body: formData
+    }
         );
 
         const data = await response.json();
