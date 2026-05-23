@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.encoders import jsonable_encoder
 
 import pandas as pd
@@ -12,20 +13,6 @@ import os
 app = FastAPI()
 
 # ==========================================
-# CORS
-# ==========================================
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://bbbibanks-debug.github.io/MIDAS/"
-    ],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ==========================================
 # UPLOAD FOLDER
 # ==========================================
 
@@ -34,26 +21,32 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ==========================================
+# STATIC FILES
+# ==========================================
+
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)
+
+# ==========================================
 # HOME
 # ==========================================
 
 @app.get("/")
-def home():
+async def home():
 
-    return {
-        "message": "MIDAS ONLINE"
-    }
+    return FileResponse("static/index.html")
 
 # ==========================================
-# OPTIONS ROUTE
+# FRONTEND
 # ==========================================
 
-@app.options("/upload")
-async def upload_options():
+@app.get("/app")
+async def frontend():
 
-    return {
-        "message": "OK"
-    }
+    return FileResponse("static/index.html")
 
 # ==========================================
 # DETECT COLUMN TYPES
@@ -83,14 +76,14 @@ def detect_column_type(series, column_name):
         "year"
     ]
 
-    column_lower = column_name.lower()
+    column_lower = str(column_name).lower()
 
     has_date_keyword = any(
         keyword in column_lower
         for keyword in date_keywords
     )
 
-    # tenta datetime
+    # tenta detectar datetime
     if has_date_keyword:
 
         try:
@@ -128,7 +121,7 @@ async def upload_excel(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
 
-        # lê excel
+        # leitura excel
         df = pd.read_excel(file_path)
 
         # ==========================================
@@ -153,11 +146,11 @@ async def upload_excel(file: UploadFile = File(...)):
                 detected_type == "datetime"
                 and detected_date_column is None
             ):
-                detected_date_column = col
+                detected_date_column = str(col)
 
-            # detecta colunas numéricas
+            # detecta numéricas
             if detected_type == "numeric":
-                numeric_columns.append(col)
+                numeric_columns.append(str(col))
 
             columns_analysis.append({
 
@@ -175,7 +168,7 @@ async def upload_excel(file: UploadFile = File(...)):
             })
 
         # ==========================================
-        # TARGET
+        # TARGET VARIABLE
         # ==========================================
 
         target_variable = None
