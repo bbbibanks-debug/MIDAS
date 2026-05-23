@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 
 import pandas as pd
 import os
+import re
 
 # ==========================================
 # APP
@@ -60,12 +61,83 @@ def detect_column_type(series, column_name):
     if len(clean_series) == 0:
         return "unknown"
 
-    # numérico primeiro
+    # ==========================================
+    # NUMÉRICO
+    # ==========================================
+
     if pd.api.types.is_numeric_dtype(clean_series):
         return "numeric"
 
-    # palavras relacionadas a data
+    # ==========================================
+    # CONVERTE PARA STRING
+    # ==========================================
+
+    sample_values = clean_series.astype(str).head(20)
+
+    # ==========================================
+    # PADRÕES TEMPORAIS
+    # ==========================================
+
+    temporal_patterns = [
+
+        # 2024-01
+        r"^\d{4}-\d{2}$",
+
+        # 2024/01
+        r"^\d{4}/\d{2}$",
+
+        # 2024Q1
+        r"^\d{4}Q[1-4]$",
+
+        # 2024q1
+        r"^\d{4}q[1-4]$",
+
+        # 2024M01
+        r"^\d{4}M\d{2}$",
+
+        # Jan-24
+        r"^[A-Za-z]{3}-\d{2}$",
+
+        # Jan/24
+        r"^[A-Za-z]{3}/\d{2}$",
+
+        # YYYY
+        r"^\d{4}$"
+    ]
+
+    # ==========================================
+    # TESTA PADRÕES
+    # ==========================================
+
+    temporal_matches = 0
+
+    for value in sample_values:
+
+        for pattern in temporal_patterns:
+
+            if re.match(pattern, value):
+
+                temporal_matches += 1
+
+                break
+
+    # ==========================================
+    # MAIORIA TEMPORAL
+    # ==========================================
+
+    temporal_ratio = (
+        temporal_matches / len(sample_values)
+    )
+
+    if temporal_ratio > 0.6:
+        return "datetime"
+
+    # ==========================================
+    # PALAVRAS TEMPORAIS
+    # ==========================================
+
     date_keywords = [
+
         "data",
         "date",
         "periodo",
@@ -73,7 +145,10 @@ def detect_column_type(series, column_name):
         "mes",
         "month",
         "ano",
-        "year"
+        "year",
+        "quarter",
+        "trimestre",
+        "reference"
     ]
 
     column_lower = str(column_name).lower()
@@ -83,7 +158,10 @@ def detect_column_type(series, column_name):
         for keyword in date_keywords
     )
 
-    # tenta detectar datetime
+    # ==========================================
+    # FALLBACK DATETIME
+    # ==========================================
+
     if has_date_keyword:
 
         try:
@@ -101,6 +179,10 @@ def detect_column_type(series, column_name):
         except:
             pass
 
+    # ==========================================
+    # DEFAULT
+    # ==========================================
+
     return "categorical"
 
 # ==========================================
@@ -112,7 +194,10 @@ async def upload_excel(file: UploadFile = File(...)):
 
     try:
 
-        # salva arquivo
+        # ==========================================
+        # SAVE FILE
+        # ==========================================
+
         file_path = os.path.join(
             UPLOAD_FOLDER,
             file.filename
@@ -121,11 +206,14 @@ async def upload_excel(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
 
-        # leitura excel
+        # ==========================================
+        # READ EXCEL
+        # ==========================================
+
         df = pd.read_excel(file_path)
 
         # ==========================================
-        # ANALYSIS
+        # COLUMN ANALYSIS
         # ==========================================
 
         columns_analysis = []
@@ -148,7 +236,7 @@ async def upload_excel(file: UploadFile = File(...)):
             ):
                 detected_date_column = str(col)
 
-            # detecta numéricas
+            # detecta colunas numéricas
             if detected_type == "numeric":
                 numeric_columns.append(str(col))
 
@@ -193,7 +281,6 @@ async def upload_excel(file: UploadFile = File(...)):
 
         prepared_rows = 0
 
-        # tratamento temporal
         if detected_date_column is not None:
 
             try:
