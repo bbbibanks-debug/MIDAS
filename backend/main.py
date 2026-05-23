@@ -3,6 +3,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.encoders import jsonable_encoder
 
+from pydantic import BaseModel
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
 import pandas as pd
 import os
 import re
@@ -12,6 +17,24 @@ import re
 # ==========================================
 
 app = FastAPI()
+
+# ==========================================
+# GLOBAL DATAFRAME
+# ==========================================
+
+uploaded_df = None
+
+# ==========================================
+# MODEL REQUEST
+# ==========================================
+
+class ModelRequest(BaseModel):
+
+    date_column: str
+
+    target_variable: str
+
+    features: list[str]
 
 # ==========================================
 # UPLOAD FOLDER
@@ -69,13 +92,13 @@ def detect_column_type(series, column_name):
         return "numeric"
 
     # ==========================================
-    # CONVERTE PARA STRING
+    # STRING SAMPLE
     # ==========================================
 
     sample_values = clean_series.astype(str).head(20)
 
     # ==========================================
-    # PADRÕES TEMPORAIS
+    # TEMPORAL PATTERNS
     # ==========================================
 
     temporal_patterns = [
@@ -106,7 +129,7 @@ def detect_column_type(series, column_name):
     ]
 
     # ==========================================
-    # TESTA PADRÕES
+    # TEST TEMPORAL PATTERNS
     # ==========================================
 
     temporal_matches = 0
@@ -121,10 +144,6 @@ def detect_column_type(series, column_name):
 
                 break
 
-    # ==========================================
-    # MAIORIA TEMPORAL
-    # ==========================================
-
     temporal_ratio = (
         temporal_matches / len(sample_values)
     )
@@ -133,7 +152,7 @@ def detect_column_type(series, column_name):
         return "datetime"
 
     # ==========================================
-    # PALAVRAS TEMPORAIS
+    # TEMPORAL KEYWORDS
     # ==========================================
 
     date_keywords = [
@@ -194,6 +213,8 @@ async def upload_excel(file: UploadFile = File(...)):
 
     try:
 
+        global uploaded_df
+
         # ==========================================
         # SAVE FILE
         # ==========================================
@@ -211,6 +232,9 @@ async def upload_excel(file: UploadFile = File(...)):
         # ==========================================
 
         df = pd.read_excel(file_path)
+
+        # salva dataframe global
+        uploaded_df = df.copy()
 
         # ==========================================
         # COLUMN ANALYSIS
@@ -236,7 +260,7 @@ async def upload_excel(file: UploadFile = File(...)):
             ):
                 detected_date_column = str(col)
 
-            # detecta colunas numéricas
+            # detecta numéricas
             if detected_type == "numeric":
                 numeric_columns.append(str(col))
 
@@ -361,6 +385,116 @@ async def upload_excel(file: UploadFile = File(...)):
         }
 
         return jsonable_encoder(response_data)
+
+    except Exception as e:
+
+        return {
+            "error": str(e)
+        }
+
+# ==========================================
+# RUN MODEL
+# ==========================================
+
+@app.post("/run-model")
+async def run_model(request: ModelRequest):
+
+    try:
+
+        global uploaded_df
+
+        if uploaded_df is None:
+
+            return {
+                "error": "Nenhum dataset carregado."
+            }
+
+        df = uploaded_df.copy()
+
+        # ==========================================
+        # VARIABLES
+        # ==========================================
+
+        target_variable = request.target_variable
+
+        features = request.features
+
+        # ==========================================
+        # VALIDATION
+        # ==========================================
+
+        if len(features) == 0:
+
+            return {
+                "error": "Selecione ao menos uma feature."
+            }
+
+        # ==========================================
+        # MODEL DATASET
+        # ==========================================
+
+        model_df = df[
+            [target_variable] + features
+        ].dropna()
+
+        # ==========================================
+        # X AND Y
+        # ==========================================
+
+        X = model_df[features]
+
+        y = model_df[target_variable]
+
+        # ==========================================
+        # MODEL
+        # ==========================================
+
+        model = LinearRegression()
+
+        model.fit(X, y)
+
+        # ==========================================
+        # PREDICTIONS
+        # ==========================================
+
+        predictions = model.predict(X)
+
+        # ==========================================
+        # METRICS
+        # ==========================================
+
+        r2 = r2_score(y, predictions)
+
+        # ==========================================
+        # COEFFICIENTS
+        # ==========================================
+
+        coefficients = {}
+
+        for feature, coef in zip(
+            features,
+            model.coef_
+        ):
+
+            coefficients[feature] = float(coef)
+
+        # ==========================================
+        # RESPONSE
+        # ==========================================
+
+        return {
+
+            "model_results": {
+
+                "observations": int(len(model_df)),
+
+                "r2": float(r2),
+
+                "intercept": float(model.intercept_),
+
+                "coefficients": coefficients
+            }
+        }
 
     except Exception as e:
 
