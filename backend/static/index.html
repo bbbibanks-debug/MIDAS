@@ -110,7 +110,7 @@
                     </h1>
 
                     <p class="page-subtitle">
-                        Análise Econométrica Inteligente
+                        Plataforma Econométrica Inteligente
                     </p>
 
                 </div>
@@ -258,24 +258,38 @@
                 </section>
 
                 <!-- ====================================== -->
-                <!-- MODEL CONFIG -->
+                <!-- CONFIG -->
                 <!-- ====================================== -->
 
-                <section class="card config-card">
+                <section class="card accordion-card">
 
-                    <div class="card-header">
+                    <div
+                        class="accordion-header"
+                        onclick="toggleAccordion('configContent', this)"
+                    >
 
                         <h2>
                             Configuração do Modelo
                         </h2>
 
+                        <span class="accordion-icon">
+                            ▼
+                        </span>
+
                     </div>
 
-                    <div id="modelConfig">
+                    <div
+                        class="accordion-content collapsed"
+                        id="configContent"
+                    >
 
-                        <div class="empty-state">
+                        <div id="modelConfig">
 
-                            Carregue uma planilha para configurar o modelo.
+                            <div class="empty-state">
+
+                                Carregue uma planilha para configurar o modelo.
+
+                            </div>
 
                         </div>
 
@@ -321,7 +335,7 @@
                     <div class="card-header">
 
                         <h2>
-                            Gráfico — Real vs Predito
+                            Real vs Predito
                         </h2>
 
                     </div>
@@ -338,21 +352,35 @@
                 <!-- COEFFICIENTS -->
                 <!-- ====================================== -->
 
-                <section class="card coefficients-card">
+                <section class="card accordion-card">
 
-                    <div class="card-header">
+                    <div
+                        class="accordion-header"
+                        onclick="toggleAccordion('coefContent', this)"
+                    >
 
                         <h2>
                             Coeficientes do Modelo
                         </h2>
 
+                        <span class="accordion-icon">
+                            ▼
+                        </span>
+
                     </div>
 
-                    <div id="coefficientsTable">
+                    <div
+                        class="accordion-content collapsed"
+                        id="coefContent"
+                    >
 
-                        <div class="empty-state">
+                        <div id="coefficientsTable">
 
-                            Nenhum modelo executado.
+                            <div class="empty-state">
+
+                                Nenhum modelo executado.
+
+                            </div>
 
                         </div>
 
@@ -364,21 +392,35 @@
                 <!-- PREVIEW -->
                 <!-- ====================================== -->
 
-                <section class="card preview-card">
+                <section class="card accordion-card">
 
-                    <div class="card-header">
+                    <div
+                        class="accordion-header"
+                        onclick="toggleAccordion('previewContent', this)"
+                    >
 
                         <h2>
                             Preview dos Dados
                         </h2>
 
+                        <span class="accordion-icon">
+                            ▼
+                        </span>
+
                     </div>
 
-                    <div id="previewTable">
+                    <div
+                        class="accordion-content collapsed"
+                        id="previewContent"
+                    >
 
-                        <div class="empty-state">
+                        <div id="previewTable">
 
-                            Nenhum dataset carregado.
+                            <div class="empty-state">
+
+                                Nenhum dataset carregado.
+
+                            </div>
 
                         </div>
 
