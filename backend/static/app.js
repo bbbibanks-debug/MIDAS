@@ -110,6 +110,148 @@ async function uploadFile() {
         `;
 
         // =========================
+        // SELECT OPTIONS
+        // =========================
+
+        const numericColumns = data.columns_analysis
+            .filter(col => col.detected_type === "numeric")
+            .map(col => col.name);
+
+        const datetimeColumns = data.columns_analysis
+            .filter(col => col.detected_type === "datetime")
+            .map(col => col.name);
+
+        // =========================
+        // DATE OPTIONS
+        // =========================
+
+        let dateOptions = "";
+
+        datetimeColumns.forEach(col => {
+
+            const selected =
+                col === data.suggestions.date_column
+                ? "selected"
+                : "";
+
+            dateOptions += `
+                <option value="${col}" ${selected}>
+                    ${col}
+                </option>
+            `;
+        });
+
+        // =========================
+        // TARGET OPTIONS
+        // =========================
+
+        let targetOptions = "";
+
+        numericColumns.forEach(col => {
+
+            const selected =
+                col === data.suggestions.target_variable
+                ? "selected"
+                : "";
+
+            targetOptions += `
+                <option value="${col}" ${selected}>
+                    ${col}
+                </option>
+            `;
+        });
+
+        // =========================
+        // FEATURE CHECKBOXES
+        // =========================
+
+        let featureCheckboxes = "";
+
+        numericColumns.forEach(col => {
+
+            const checked =
+                data.suggestions.features.includes(col)
+                ? "checked"
+                : "";
+
+            featureCheckboxes += `
+
+                <label class="feature-item">
+
+                    <input
+                        type="checkbox"
+                        value="${col}"
+                        ${checked}
+                    >
+
+                    ${col}
+
+                </label>
+            `;
+        });
+
+        // =========================
+        // MODEL CONFIG
+        // =========================
+
+        const modelConfig = `
+
+            <div class="card">
+
+                <h2>⚙️ Configuração do Modelo</h2>
+
+                <div class="form-group">
+
+                    <label>
+                        📅 Coluna temporal
+                    </label>
+
+                    <select id="dateColumn">
+
+                        ${dateOptions}
+
+                    </select>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>
+                        🎯 Variável alvo
+                    </label>
+
+                    <select id="targetVariable">
+
+                        ${targetOptions}
+
+                    </select>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>
+                        📈 Variáveis explicativas
+                    </label>
+
+                    <div class="features-container">
+
+                        ${featureCheckboxes}
+
+                    </div>
+
+                </div>
+
+                <button onclick="runModel()">
+
+                    Executar Modelo MIDAS
+
+                </button>
+
+            </div>
+        `;
+
+        // =========================
         // COLUMNS ANALYSIS
         // =========================
 
@@ -181,6 +323,7 @@ ${JSON.stringify(data.preview, null, 2)}
             ${datasetInfo}
             ${suggestions}
             ${preparedDataset}
+            ${modelConfig}
             ${columnsTable}
             ${preview}
         `;
@@ -206,4 +349,43 @@ ${error}
             </div>
         `;
     }
+}
+
+// =========================
+// RUN MODEL
+// =========================
+
+function runModel() {
+
+    const dateColumn =
+        document.getElementById("dateColumn").value;
+
+    const targetVariable =
+        document.getElementById("targetVariable").value;
+
+    const checkedFeatures = [];
+
+    document
+        .querySelectorAll(
+            '.features-container input[type="checkbox"]:checked'
+        )
+        .forEach(checkbox => {
+
+            checkedFeatures.push(
+                checkbox.value
+            );
+        });
+
+    console.log({
+
+        date_column: dateColumn,
+
+        target_variable: targetVariable,
+
+        features: checkedFeatures
+    });
+
+    alert(
+        "Configuração do modelo capturada com sucesso."
+    );
 }
