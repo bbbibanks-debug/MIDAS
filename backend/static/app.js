@@ -6,26 +6,47 @@ let chartInstance = null;
 
 async function uploadFile() {
 
-    const fileInput = document.getElementById("fileInput");
+    const fileInput =
+        document.getElementById("fileInput");
 
-    const resultDiv = document.getElementById("result");
-
-    const file = fileInput.files[0];
+    const file =
+        fileInput.files[0];
 
     if (!file) {
 
-        alert("Selecione um arquivo Excel.");
+        alert(
+            "Selecione uma planilha Excel."
+        );
 
         return;
     }
 
-    resultDiv.innerHTML = `
-        <p>Analisando planilha...</p>
+    // ==========================================
+    // LOADING STATES
+    // ==========================================
+
+    document.getElementById(
+        "modelConfig"
+    ).innerHTML = `
+        <div class="empty-state">
+            Analisando dataset...
+        </div>
+    `;
+
+    document.getElementById(
+        "previewTable"
+    ).innerHTML = `
+        <div class="empty-state">
+            Carregando preview...
+        </div>
     `;
 
     const formData = new FormData();
 
-    formData.append("file", file);
+    formData.append(
+        "file",
+        file
+    );
 
     try {
 
@@ -37,322 +58,261 @@ async function uploadFile() {
             }
         );
 
-        const data = await response.json();
+        const data =
+            await response.json();
+
+        // ==========================================
+        // ERROR
+        // ==========================================
 
         if (data.error) {
 
-            resultDiv.innerHTML = `
-
-                <div class="card error">
-
-                    <h2>Erro</h2>
-
-                    <pre>${data.error}</pre>
-
-                </div>
-            `;
+            showError(data.error);
 
             return;
         }
 
         // ==========================================
-        // DATASET INFO
+        // SUMMARY
         // ==========================================
 
-        const datasetInfo = `
-
-            <div class="card">
-
-                <h2>📊 Dataset</h2>
-
-                <p>
-                    <strong>Linhas:</strong>
-                    ${data.dataset_info.rows}
-                </p>
-
-                <p>
-                    <strong>Colunas:</strong>
-                    ${data.dataset_info.columns}
-                </p>
-
-            </div>
-        `;
-
-        // ==========================================
-        // SUGGESTIONS
-        // ==========================================
-
-        const suggestions = `
-
-            <div class="card">
-
-                <h2>🧠 Sugestões Inteligentes</h2>
-
-                <p>
-                    <strong>Coluna temporal:</strong>
-                    ${data.suggestions.date_column || "Não detectada"}
-                </p>
-
-                <p>
-                    <strong>Variável alvo:</strong>
-                    ${data.suggestions.target_variable || "Não detectada"}
-                </p>
-
-                <p>
-                    <strong>Features:</strong>
-                    ${data.suggestions.features.join(", ")}
-                </p>
-
-            </div>
-        `;
-
-        // ==========================================
-        // NUMERIC COLUMNS
-        // ==========================================
-
-        const numericColumns = data.columns_analysis
-            .filter(col => col.detected_type === "numeric")
-            .map(col => col.name);
-
-        // ==========================================
-        // DATETIME COLUMNS
-        // ==========================================
-
-        const datetimeColumns = data.columns_analysis
-            .filter(col => col.detected_type === "datetime")
-            .map(col => col.name);
-
-        // ==========================================
-        // DATE OPTIONS
-        // ==========================================
-
-        let dateOptions = "";
-
-        datetimeColumns.forEach(col => {
-
-            const selected =
-                col === data.suggestions.date_column
-                ? "selected"
-                : "";
-
-            dateOptions += `
-                <option value="${col}" ${selected}>
-                    ${col}
-                </option>
-            `;
-        });
-
-        // ==========================================
-        // TARGET OPTIONS
-        // ==========================================
-
-        let targetOptions = "";
-
-        numericColumns.forEach(col => {
-
-            const selected =
-                col === data.suggestions.target_variable
-                ? "selected"
-                : "";
-
-            targetOptions += `
-                <option value="${col}" ${selected}>
-                    ${col}
-                </option>
-            `;
-        });
-
-        // ==========================================
-        // FEATURE CHECKBOXES
-        // ==========================================
-
-        let featureCheckboxes = "";
-
-        numericColumns.forEach(col => {
-
-            const checked =
-                data.suggestions.features.includes(col)
-                ? "checked"
-                : "";
-
-            featureCheckboxes += `
-
-                <label class="feature-item">
-
-                    <input
-                        type="checkbox"
-                        value="${col}"
-                        ${checked}
-                    >
-
-                    ${col}
-
-                </label>
-            `;
-        });
+        updateSummary(data);
 
         // ==========================================
         // MODEL CONFIG
         // ==========================================
 
-        const modelConfig = `
-
-            <div class="card">
-
-                <h2>⚙️ Configuração do Modelo</h2>
-
-                <div class="form-group">
-
-                    <label>
-                        📅 Coluna temporal
-                    </label>
-
-                    <select id="dateColumn">
-
-                        ${dateOptions}
-
-                    </select>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label>
-                        🎯 Variável alvo
-                    </label>
-
-                    <select id="targetVariable">
-
-                        ${targetOptions}
-
-                    </select>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label>
-                        📈 Variáveis explicativas
-                    </label>
-
-                    <div class="features-container">
-
-                        ${featureCheckboxes}
-
-                    </div>
-
-                </div>
-
-                <button onclick="runModel()">
-
-                    Executar Modelo MIDAS
-
-                </button>
-
-                <div id="modelResult"></div>
-
-            </div>
-        `;
-
-        // ==========================================
-        // COLUMNS TABLE
-        // ==========================================
-
-        let columnsTable = `
-
-            <div class="card">
-
-                <h2>📋 Análise das Colunas</h2>
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-
-                            <th>Coluna</th>
-                            <th>Tipo</th>
-                            <th>Missing</th>
-                            <th>Únicos</th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-        `;
-
-        data.columns_analysis.forEach(col => {
-
-            columnsTable += `
-
-                <tr>
-
-                    <td>${col.name}</td>
-
-                    <td>${col.detected_type}</td>
-
-                    <td>${col.missing_values}</td>
-
-                    <td>${col.unique_values}</td>
-
-                </tr>
-            `;
-        });
-
-        columnsTable += `
-
-                    </tbody>
-
-                </table>
-
-            </div>
-        `;
+        renderModelConfig(data);
 
         // ==========================================
         // PREVIEW
         // ==========================================
 
-        const preview = `
-
-            <div class="card">
-
-                <h2>👀 Preview</h2>
-
-                <pre>
-${JSON.stringify(data.preview, null, 2)}
-                </pre>
-
-            </div>
-        `;
-
-        // ==========================================
-        // FINAL RENDER
-        // ==========================================
-
-        resultDiv.innerHTML = `
-            ${datasetInfo}
-            ${suggestions}
-            ${modelConfig}
-            ${columnsTable}
-            ${preview}
-        `;
+        renderPreview(data.preview);
 
     } catch (error) {
 
         console.error(error);
 
-        resultDiv.innerHTML = `
+        showError(error);
+    }
+}
 
-            <div class="card error">
+// ==========================================
+// SUMMARY
+// ==========================================
 
-                <h2>Erro</h2>
+function updateSummary(data) {
 
-                <pre>${error}</pre>
+    document.getElementById(
+        "summaryRows"
+    ).innerText =
+        data.dataset_info.rows;
+
+    document.getElementById(
+        "summaryColumns"
+    ).innerText =
+        data.dataset_info.columns;
+
+    const numericCount =
+        data.columns_analysis.filter(
+            col =>
+                col.detected_type === "numeric"
+        ).length;
+
+    const datetimeCount =
+        data.columns_analysis.filter(
+            col =>
+                col.detected_type === "datetime"
+        ).length;
+
+    document.getElementById(
+        "summaryNumeric"
+    ).innerText =
+        numericCount;
+
+    document.getElementById(
+        "summaryDatetime"
+    ).innerText =
+        datetimeCount;
+}
+
+// ==========================================
+// MODEL CONFIG
+// ==========================================
+
+function renderModelConfig(data) {
+
+    const numericColumns =
+        data.columns_analysis
+            .filter(
+                col =>
+                    col.detected_type === "numeric"
+            )
+            .map(col => col.name);
+
+    const datetimeColumns =
+        data.columns_analysis
+            .filter(
+                col =>
+                    col.detected_type === "datetime"
+            )
+            .map(col => col.name);
+
+    // ==========================================
+    // DATE OPTIONS
+    // ==========================================
+
+    let dateOptions = "";
+
+    datetimeColumns.forEach(col => {
+
+        const selected =
+            col === data.suggestions.date_column
+            ? "selected"
+            : "";
+
+        dateOptions += `
+            <option
+                value="${col}"
+                ${selected}
+            >
+                ${col}
+            </option>
+        `;
+    });
+
+    // ==========================================
+    // TARGET OPTIONS
+    // ==========================================
+
+    let targetOptions = "";
+
+    numericColumns.forEach(col => {
+
+        const selected =
+            col === data.suggestions.target_variable
+            ? "selected"
+            : "";
+
+        targetOptions += `
+            <option
+                value="${col}"
+                ${selected}
+            >
+                ${col}
+            </option>
+        `;
+    });
+
+    // ==========================================
+    // FEATURES
+    // ==========================================
+
+    let featuresHtml = "";
+
+    numericColumns.forEach(col => {
+
+        const checked =
+            data.suggestions.features.includes(col)
+            ? "checked"
+            : "";
+
+        featuresHtml += `
+
+            <label class="feature-item">
+
+                <input
+                    type="checkbox"
+                    value="${col}"
+                    ${checked}
+                >
+
+                ${col}
+
+            </label>
+        `;
+    });
+
+    // ==========================================
+    // RENDER
+    // ==========================================
+
+    document.getElementById(
+        "modelConfig"
+    ).innerHTML = `
+
+        <div class="config-grid">
+
+            <!-- DATE -->
+
+            <div class="config-box">
+
+                <label>
+                    Coluna Temporal
+                </label>
+
+                <select id="dateColumn">
+
+                    ${dateOptions}
+
+                </select>
+
+                <div class="suggestion-box">
+
+                    Detectada automaticamente
+                </div>
 
             </div>
-        `;
-    }
+
+            <!-- TARGET -->
+
+            <div class="config-box">
+
+                <label>
+                    Variável Alvo
+                </label>
+
+                <select id="targetVariable">
+
+                    ${targetOptions}
+
+                </select>
+
+                <div class="suggestion-box">
+
+                    Sugestão MIDAS
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- FEATURES -->
+
+        <div class="form-group">
+
+            <label>
+                Variáveis Explicativas
+            </label>
+
+            <div class="features-container">
+
+                ${featuresHtml}
+
+            </div>
+
+        </div>
+
+        <button
+            class="primary-button"
+            onclick="runModel()"
+        >
+            Executar Modelo MIDAS
+        </button>
+
+        <div id="modelResult"></div>
+    `;
 }
 
 // ==========================================
@@ -362,13 +322,19 @@ ${JSON.stringify(data.preview, null, 2)}
 async function runModel() {
 
     const modelResultDiv =
-        document.getElementById("modelResult");
+        document.getElementById(
+            "modelResult"
+        );
 
     const dateColumn =
-        document.getElementById("dateColumn").value;
+        document.getElementById(
+            "dateColumn"
+        ).value;
 
     const targetVariable =
-        document.getElementById("targetVariable").value;
+        document.getElementById(
+            "targetVariable"
+        ).value;
 
     const checkedFeatures = [];
 
@@ -386,14 +352,23 @@ async function runModel() {
     if (checkedFeatures.length === 0) {
 
         alert(
-            "Selecione ao menos uma variável explicativa."
+            "Selecione ao menos uma variável."
         );
 
         return;
     }
 
+    // ==========================================
+    // LOADING
+    // ==========================================
+
     modelResultDiv.innerHTML = `
-        <p>Executando modelo MIDAS...</p>
+
+        <div class="empty-state">
+
+            Executando modelo econométrico...
+
+        </div>
     `;
 
     try {
@@ -418,170 +393,318 @@ async function runModel() {
             }
         );
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         if (data.error) {
 
-            modelResultDiv.innerHTML = `
-
-                <div class="card error">
-
-                    <h2>Erro</h2>
-
-                    <pre>${data.error}</pre>
-
-                </div>
-            `;
+            showError(data.error);
 
             return;
         }
 
-        let coefficientsHtml = "";
+        renderMetrics(data);
 
-        Object.entries(
-            data.model_results.coefficients
-        ).forEach(([feature, coef]) => {
+        renderCoefficients(data);
 
-            coefficientsHtml += `
-
-                <tr>
-
-                    <td>${feature}</td>
-
-                    <td>${coef.toFixed(4)}</td>
-
-                </tr>
-            `;
-        });
-
-        modelResultDiv.innerHTML = `
-
-            <div class="card">
-
-                <h2>📈 Resultados do Modelo</h2>
-
-                <p>
-                    <strong>Observações:</strong>
-                    ${data.model_results.observations}
-                </p>
-
-                <p>
-                    <strong>R²:</strong>
-                    ${data.model_results.r2.toFixed(4)}
-                </p>
-
-                <p>
-                    <strong>MAE:</strong>
-                    ${data.model_results.mae.toFixed(4)}
-                </p>
-
-                <p>
-                    <strong>RMSE:</strong>
-                    ${data.model_results.rmse.toFixed(4)}
-                </p>
-
-                <p>
-                    <strong>Intercepto:</strong>
-                    ${data.model_results.intercept.toFixed(4)}
-                </p>
-
-                <p>
-                    <strong>Interpretação:</strong>
-                    ${data.model_results.interpretation}
-                </p>
-
-                <h3>Coeficientes</h3>
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-
-                            <th>Variável</th>
-                            <th>Coeficiente</th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        ${coefficientsHtml}
-
-                    </tbody>
-
-                </table>
-
-                <canvas
-                    id="predictionChart"
-                    height="120"
-                ></canvas>
-
-            </div>
-        `;
-
-        // ==========================================
-        // CHART
-        // ==========================================
-
-        const ctx =
-            document.getElementById(
-                "predictionChart"
-            );
-
-        if (chartInstance) {
-
-            chartInstance.destroy();
-        }
-
-        chartInstance = new Chart(ctx, {
-
-            type: "line",
-
-            data: {
-
-                labels: data.model_results.actual_values.map(
-                    (_, i) => i + 1
-                ),
-
-                datasets: [
-
-                    {
-                        label: "Real",
-                        data: data.model_results.actual_values,
-                        borderWidth: 2
-                    },
-
-                    {
-                        label: "Predito",
-                        data: data.model_results.predicted_values,
-                        borderWidth: 2
-                    }
-                ]
-            },
-
-            options: {
-
-                responsive: true,
-
-                maintainAspectRatio: false
-            }
-        });
+        renderChart(data);
 
     } catch (error) {
 
         console.error(error);
 
-        modelResultDiv.innerHTML = `
-
-            <div class="card error">
-
-                <h2>Erro</h2>
-
-                <pre>${error}</pre>
-
-            </div>
-        `;
+        showError(error);
     }
+}
+
+// ==========================================
+// METRICS
+// ==========================================
+
+function renderMetrics(data) {
+
+    const metricsGrid =
+        document.getElementById(
+            "metricsGrid"
+        );
+
+    metricsGrid.innerHTML = `
+
+        <div class="metric-card">
+
+            <div class="metric-title">
+                R²
+            </div>
+
+            <div class="metric-value">
+                ${data.model_results.r2.toFixed(4)}
+            </div>
+
+            <div class="metric-description">
+                Qualidade do ajuste
+            </div>
+
+        </div>
+
+        <div class="metric-card">
+
+            <div class="metric-title">
+                MAE
+            </div>
+
+            <div class="metric-value">
+                ${data.model_results.mae.toFixed(4)}
+            </div>
+
+            <div class="metric-description">
+                Erro absoluto médio
+            </div>
+
+        </div>
+
+        <div class="metric-card">
+
+            <div class="metric-title">
+                RMSE
+            </div>
+
+            <div class="metric-value">
+                ${data.model_results.rmse.toFixed(4)}
+            </div>
+
+            <div class="metric-description">
+                Erro quadrático médio
+            </div>
+
+        </div>
+
+        <div class="metric-card">
+
+            <div class="metric-title">
+                Observações
+            </div>
+
+            <div class="metric-value">
+                ${data.model_results.observations}
+            </div>
+
+            <div class="metric-description">
+                Amostra utilizada
+            </div>
+
+        </div>
+
+        <div class="metric-card">
+
+            <div class="metric-title">
+                Intercepto
+            </div>
+
+            <div class="metric-value">
+                ${data.model_results.intercept.toFixed(4)}
+            </div>
+
+            <div class="metric-description">
+                Constante do modelo
+            </div>
+
+        </div>
+    `;
+}
+
+// ==========================================
+// COEFFICIENTS
+// ==========================================
+
+function renderCoefficients(data) {
+
+    let rows = "";
+
+    Object.entries(
+        data.model_results.coefficients
+    ).forEach(([feature, coef]) => {
+
+        rows += `
+
+            <tr>
+
+                <td>${feature}</td>
+
+                <td>${coef.toFixed(4)}</td>
+
+            </tr>
+        `;
+    });
+
+    document.getElementById(
+        "coefficientsTable"
+    ).innerHTML = `
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Variável</th>
+
+                    <th>Coeficiente</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                ${rows}
+
+            </tbody>
+
+        </table>
+    `;
+}
+
+// ==========================================
+// PREVIEW
+// ==========================================
+
+function renderPreview(preview) {
+
+    if (!preview.length) {
+
+        return;
+    }
+
+    const columns =
+        Object.keys(preview[0]);
+
+    let thead = "";
+
+    columns.forEach(col => {
+
+        thead += `
+            <th>${col}</th>
+        `;
+    });
+
+    let tbody = "";
+
+    preview.forEach(row => {
+
+        tbody += "<tr>";
+
+        columns.forEach(col => {
+
+            tbody += `
+                <td>${row[col]}</td>
+            `;
+        });
+
+        tbody += "</tr>";
+    });
+
+    document.getElementById(
+        "previewTable"
+    ).innerHTML = `
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    ${thead}
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                ${tbody}
+
+            </tbody>
+
+        </table>
+    `;
+}
+
+// ==========================================
+// CHART
+// ==========================================
+
+function renderChart(data) {
+
+    const ctx =
+        document.getElementById(
+            "predictionChart"
+        );
+
+    if (chartInstance) {
+
+        chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+
+        type: "line",
+
+        data: {
+
+            labels:
+                data.model_results.actual_values.map(
+                    (_, i) => i + 1
+                ),
+
+            datasets: [
+
+                {
+                    label: "Real",
+
+                    data:
+                        data.model_results.actual_values,
+
+                    borderWidth: 2
+                },
+
+                {
+                    label: "Predito",
+
+                    data:
+                        data.model_results.predicted_values,
+
+                    borderWidth: 2
+                }
+            ]
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false
+        }
+    });
+}
+
+// ==========================================
+// ERROR
+// ==========================================
+
+function showError(error) {
+
+    console.error(error);
+
+    document.getElementById(
+        "modelConfig"
+    ).innerHTML = `
+
+        <div class="card error">
+
+            <h2>Erro</h2>
+
+            <pre>${error}</pre>
+
+        </div>
+    `;
 }
