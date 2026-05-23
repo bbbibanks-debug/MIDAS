@@ -22,7 +22,7 @@ async function uploadFile() {
     try {
 
         const response = await fetch(
-            "https://SEUAPP.onrender.com/upload",
+            "https://midas-7xzm.onrender.com/upload",
             {
                 method: "POST",
                 body: formData
