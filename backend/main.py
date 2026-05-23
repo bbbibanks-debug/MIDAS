@@ -259,7 +259,9 @@ async def upload_excel(file: UploadFile = File(...)):
             "date_column": detected_date_column
         },
 
-        "preview": df.head(5).to_dict(
-            orient="records"
-        )
+       "preview": (
+    df.head(5)
+    .astype(str)
+    .to_dict(orient="records")
+)
     }
