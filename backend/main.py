@@ -14,8 +14,7 @@ from sklearn.metrics import (
 )
 
 import uvicorn
-import os
-import json
+
 from datetime import datetime
 from typing import List
 
@@ -40,9 +39,7 @@ app.mount(
 # ==========================================
 
 DATAFRAME = None
-
 LAST_PREDICTIONS = None
-
 ANALYTICS_HISTORY = []
 
 # ==========================================
@@ -63,17 +60,13 @@ async def root():
 class ModelRequest(BaseModel):
 
     date_column: str
-
     target_variable: str
-
     features: List[str]
-
     forecast_horizon: int = 3
 
 class AnalysisRequest(BaseModel):
 
     variable: str
-
     analysis_type: str
 
 # ==========================================
@@ -89,32 +82,34 @@ async def upload_file(
 
     try:
 
-        filename =
-            file.filename.lower()
+        filename = file.filename.lower()
+
+        # ======================================
+        # LOAD FILE
+        # ======================================
 
         if filename.endswith(".csv"):
 
-            df =
-                pd.read_csv(file.file)
+            df = pd.read_csv(file.file)
 
         else:
 
-            df =
-                pd.read_excel(file.file)
+            df = pd.read_excel(file.file)
 
         DATAFRAME = df.copy()
 
         # ======================================
-        # NUMERIC
+        # NUMERIC COLUMNS
         # ======================================
 
-        numeric_columns =
-            df.select_dtypes(
-                include=np.number
-            ).columns.tolist()
+        numeric_columns = (
+            df.select_dtypes(include=np.number)
+            .columns
+            .tolist()
+        )
 
         # ======================================
-        # TIME
+        # POSSIBLE TIME COLUMNS
         # ======================================
 
         possible_time_columns = []
@@ -132,7 +127,7 @@ async def upload_file(
                 pass
 
         # ======================================
-        # ANALYSIS
+        # COLUMN ANALYSIS
         # ======================================
 
         columns_analysis = []
@@ -158,19 +153,23 @@ async def upload_file(
         # SUGGESTIONS
         # ======================================
 
-        target =
-            numeric_columns[0] \
-            if numeric_columns else None
-
-        features =
-            numeric_columns[1:] \
-            if len(numeric_columns) > 1 \
-            else []
-
-        date_column =
-            possible_time_columns[0] \
-            if possible_time_columns \
+        target = (
+            numeric_columns[0]
+            if numeric_columns
             else None
+        )
+
+        features = (
+            numeric_columns[1:]
+            if len(numeric_columns) > 1
+            else []
+        )
+
+        date_column = (
+            possible_time_columns[0]
+            if possible_time_columns
+            else None
+        )
 
         return {
 
@@ -230,6 +229,7 @@ async def run_model(
         if DATAFRAME is None:
 
             return {
+
                 "error":
                     "Nenhum dataset carregado."
             }
@@ -244,72 +244,64 @@ async def run_model(
             request.target_variable
         ] + request.features
 
-        df =
-            df.dropna(
-                subset=required_cols
-            )
+        df = df.dropna(
+            subset=required_cols
+        )
 
         # ======================================
         # X Y
         # ======================================
 
-        X =
-            df[request.features]
-
-        y =
-            df[request.target_variable]
+        X = df[request.features]
+        y = df[request.target_variable]
 
         # ======================================
         # MODEL
         # ======================================
 
-        model =
-            LinearRegression()
+        model = LinearRegression()
 
         model.fit(X, y)
 
-        predictions =
-            model.predict(X)
+        predictions = model.predict(X)
 
         # ======================================
         # METRICS
         # ======================================
 
-        r2 =
-            r2_score(y, predictions)
+        r2 = r2_score(y, predictions)
 
-        rmse =
-            np.sqrt(
-                mean_squared_error(
-                    y,
-                    predictions
-                )
-            )
-
-        mae =
-            mean_absolute_error(
+        rmse = np.sqrt(
+            mean_squared_error(
                 y,
                 predictions
             )
+        )
+
+        mae = mean_absolute_error(
+            y,
+            predictions
+        )
 
         # ======================================
         # FORECAST
         # ======================================
 
-        forecast_horizon =
+        forecast_horizon = (
             request.forecast_horizon
+        )
 
-        last_row =
-            X.iloc[-1].copy()
+        last_row = X.iloc[-1].copy()
 
         future_predictions = []
 
-        for _ in range(forecast_horizon):
+        for _ in range(
+            forecast_horizon
+        ):
 
-            pred =
-                model.predict(
-                    [last_row]
-                )[0]
+            pred = model.predict(
+                [last_row]
+            )[0]
 
             future_predictions.append(
                 float(pred)
@@ -325,23 +317,25 @@ async def run_model(
 
             try:
 
-                time_series =
-                    pd.to_datetime(
-                        df[request.date_column]
-                    )
+                time_series = pd.to_datetime(
+                    df[request.date_column]
+                )
 
-                last_date =
+                last_date = (
                     time_series.iloc[-1]
+                )
 
                 for i in range(
                     1,
                     forecast_horizon + 1
                 ):
 
-                    next_date =
-                        last_date + pd.DateOffset(
+                    next_date = (
+                        last_date
+                        + pd.DateOffset(
                             months=i
                         )
+                    )
 
                     future_dates.append(
                         str(next_date.date())
@@ -384,7 +378,7 @@ async def run_model(
             )
 
         # ======================================
-        # SAVE
+        # SAVE PREDICTIONS
         # ======================================
 
         LAST_PREDICTIONS = pd.DataFrame({
@@ -426,9 +420,13 @@ async def run_model(
                     predictions.tolist(),
 
                 "time_values":
-                    df[request.date_column]
-                    .astype(str)
-                    .tolist()
+                    (
+                        df[
+                            request.date_column
+                        ]
+                        .astype(str)
+                        .tolist()
+                    )
                     if request.date_column
                     else list(
                         range(len(df))
@@ -470,19 +468,19 @@ async def variable_analysis(
         if DATAFRAME is None:
 
             return {
+
                 "error":
                     "Nenhum dataset carregado."
             }
 
-        series =
-            DATAFRAME[
-                request.variable
-            ].dropna()
+        series = DATAFRAME[
+            request.variable
+        ].dropna()
 
         results = {}
 
         # ======================================
-        # CENTRAL
+        # CENTRAL TENDENCY
         # ======================================
 
         if request.analysis_type == "central_tendency":
@@ -514,7 +512,10 @@ async def variable_analysis(
                     float(series.var()),
 
                 "range":
-                    float(series.max() - series.min())
+                    float(
+                        series.max()
+                        - series.min()
+                    )
             }
 
         # ======================================
@@ -526,13 +527,19 @@ async def variable_analysis(
             results = {
 
                 "q1":
-                    float(series.quantile(0.25)),
+                    float(
+                        series.quantile(0.25)
+                    ),
 
                 "q2":
-                    float(series.quantile(0.50)),
+                    float(
+                        series.quantile(0.50)
+                    ),
 
                 "q3":
-                    float(series.quantile(0.75))
+                    float(
+                        series.quantile(0.75)
+                    )
             }
 
         # ======================================
@@ -604,8 +611,9 @@ async def variable_analysis(
         ANALYTICS_HISTORY.append({
 
             "timestamp":
-                datetime.now()
-                .strftime("%Y-%m-%d %H:%M:%S"),
+                datetime.now().strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
 
             "variable":
                 request.variable,
@@ -664,8 +672,7 @@ async def download_predictions():
                 "Nenhuma previsão disponível."
         }
 
-    output_path =
-        "predictions.xlsx"
+    output_path = "predictions.xlsx"
 
     LAST_PREDICTIONS.to_excel(
         output_path,
