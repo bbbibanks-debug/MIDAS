@@ -1,1 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        MIDAS Terminal
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/static/style.css"
+    >
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+    <!-- ========================================== -->
+    <!-- TERMINAL -->
+    <!-- ========================================== -->
+
+    <div class="terminal-layout">
+
+        <!-- ========================================== -->
+        <!-- SIDEBAR -->
+        <!-- ========================================== -->
+
+        <aside class="terminal-sidebar">
+
+            <!-- LOGO -->
+
+            <div class="terminal-logo">
+
+                <div class="logo-main">
+                    MIDAS
+                </div>
+
+                <div class="logo-sub">
+
+                    Mixed-Frequency
+                    Intelligent
+                    Data Analysis System
+
+                </div>
+
+            </div>
+
+            <!-- NAV -->
+
+            <div class="terminal-nav">
+
+                <div class="nav-section">
+
+                    <div class="nav-title">
+                        WORKSPACE
+                    </div>
+
+                    <button class="nav-item active">
+                        Dashboard
+                    </button>
+
+                    <button class="nav-item">
+                        Econometrics
+                    </button>
+
+                    <button class="nav-item">
+                        Forecasting
+                    </button>
+
+                    <button class="nav-item">
+                        Quant Analytics
+                    </button>
+
+                    <button class="nav-item">
+                        Temporal Analysis
+                    </button>
+
+                </div>
+
+                <div class="nav-section">
+
+                    <div class="nav-title">
+                        RESEARCH
+                    </div>
+
+                    <button class="nav-item">
+                        Models
+                    </button>
+
+                    <button class="nav-item">
+                        Diagnostics
+                    </button>
+
+                    <button class="nav-item">
+                        Reports
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- STATUS -->
+
+            <div class="terminal-system">
+
+                <div class="system-title">
+                    ENGINE STATUS
+                </div>
+
+                <div class="system-live">
+
+                    ● OPERATIONAL
+
+                </div>
+
+                <div class="system-description">
+
+                    MIDAS Quantitative Engine
+
+                </div>
+
+            </div>
+
+        </aside>
+
+        <!-- ========================================== -->
+        <!-- MAIN -->
+        <!-- ========================================== -->
+
+        <main class="terminal-main">
+
+            <!-- ========================================== -->
+            <!-- RIBBON -->
+            <!-- ========================================== -->
+
+            <section class="terminal-ribbon">
+
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        OBSERVAÇÕES
+                    </div>
+
+                    <div
+                        class="ribbon-value"
+                        id="summaryRows"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        COLUNAS
+                    </div>
+
+                    <div
+                        class="ribbon-value"
+                        id="summaryColumns"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        NUMÉRICAS
+                    </div>
+
+                    <div
+                        class="ribbon-value"
+                        id="summaryNumeric"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        TEMPORAIS
+                    </div>
+
+                    <div
+                        class="ribbon-value"
+                        id="summaryDatetime"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        ENGINE
+                    </div>
+
+                    <div class="ribbon-status">
+
+                        ● ACTIVE
+
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box status-box">
+
+                    <div class="ribbon-label">
+                        STATUS
+                    </div>
+
+                    <div class="status-live">
+
+                        ● READY
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ========================================== -->
+            <!-- GRID -->
+            <!-- ========================================== -->
+
+            <div class="terminal-grid">
+
+                <!-- ========================================== -->
+                <!-- CHART -->
+                <!-- ========================================== -->
+
+                <section class="terminal-panel chart-panel">
+
+                    <div class="panel-header">
+
+                        <div class="panel-title">
+
+                            TEMPORAL ANALYTICS
+
+                        </div>
+
+                        <div class="panel-subtitle">
+
+                            Quantitative Time-Series Workspace
+
+                        </div>
+
+                    </div>
+
+                    <div class="chart-container">
+
+                        <canvas id="predictionChart"></canvas>
+
+                    </div>
+
+                </section>
+
+                <!-- ========================================== -->
+                <!-- RIGHT PANEL -->
+                <!-- ========================================== -->
+
+                <section class="terminal-panel analytics-panel">
+
+                    <!-- ========================================== -->
+                    <!-- UPLOAD -->
+                    <!-- ========================================== -->
+
+                    <div class="analytics-section">
+
+                        <div class="analytics-title">
+
+                            DATASET ENGINE
+
+                        </div>
+
+                        <input
+                            type="file"
+                            id="fileInput"
+                        >
+
+                        <button
+                            id="uploadButton"
+                            class="terminal-button"
+                        >
+
+                            ANALISAR DATASET
+
+                        </button>
+
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STATISTICS -->
+                    <!-- ========================================== -->
+
+                    <div class="analytics-section">
+
+                        <div class="analytics-title">
+
+                            STATISTICAL ANALYTICS
+
+                        </div>
+
+                        <select id="statisticsVariable">
+
+                            <option value="">
+                                Selecione uma variável
+                            </option>
+
+                        </select>
+
+                        <div class="analysis-grid">
+
+                            <button
+                                class="analysis-button"
+                                data-analysis="central_tendency"
+                            >
+
+                                CENTRAL
+
+                            </button>
+
+                            <button
+                                class="analysis-button"
+                                data-analysis="dispersion"
+                            >
+
+                                DISPERSION
+
+                            </button>
+
+                            <button
+                                class="analysis-button"
+                                data-analysis="position"
+                            >
+
+                                POSITION
+
+                            </button>
+
+                            <button
+                                class="analysis-button"
+                                data-analysis="shape"
+                            >
+
+                                SHAPE
+
+                            </button>
+
+                            <button
+                                class="analysis-button"
+                                data-analysis="temporal"
+                            >
+
+                                TEMPORAL
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- RESULTS -->
+                    <!-- ========================================== -->
+
+                    <div
+                        id="statisticsResults"
+                        class="analytics-results"
+                    >
+
+                        <div class="empty-state">
+
+                            Nenhuma análise executada.
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- ========================================== -->
+                <!-- MODEL -->
+                <!-- ========================================== -->
+
+                <section class="terminal-panel model-panel">
+
+                    <div class="panel-header">
+
+                        <div class="panel-title">
+
+                            ECONOMETRIC WORKSPACE
+
+                        </div>
+
+                        <div class="panel-subtitle">
+
+                            Regression & Mixed-Frequency Modeling
+
+                        </div>
+
+                    </div>
+
+                    <div id="modelConfig">
+
+                        <div class="empty-state">
+
+                            Carregue um dataset.
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- ========================================== -->
+                <!-- HISTORY -->
+                <!-- ========================================== -->
+
+                <section class="terminal-panel history-panel">
+
+                    <div class="panel-header">
+
+                        <div class="panel-title">
+
+                            ANALYTICS HISTORY
+
+                        </div>
+
+                        <div class="panel-subtitle">
+
+                            Quantitative Research Timeline
+
+                        </div>
+
+                    </div>
+
+                    <div id="analyticsHistory">
+
+                        <div class="empty-state">
+
+                            Nenhuma análise registrada.
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- APP -->
+    <!-- ========================================== -->
+
+    <script src="/static/app.js"></script>
+
+</body>
+
+</html>
 
