@@ -1,6 +1,6 @@
 // ==========================================
 // MIDAS FRONTEND ENGINE
-// TEMPORAL VISUALIZATION RELEASE
+// AI ANALYTICS RELEASE
 // ==========================================
 
 let uploadedData = null;
@@ -35,7 +35,7 @@ function formatNumber(value) {
 }
 
 // ==========================================
-// SIMPLE MOVING AVERAGE
+// SMA
 // ==========================================
 
 function calculateSMA(
@@ -77,7 +77,7 @@ function calculateSMA(
 }
 
 // ==========================================
-// EXPONENTIAL MOVING AVERAGE
+// EMA
 // ==========================================
 
 function calculateEMA(
@@ -122,7 +122,7 @@ function calculateEMA(
 }
 
 // ==========================================
-// UPLOAD FILE
+// UPLOAD
 // ==========================================
 
 async function uploadFile() {
@@ -192,7 +192,7 @@ async function uploadFile() {
 }
 
 // ==========================================
-// UPDATE SUMMARY
+// SUMMARY
 // ==========================================
 
 function updateSummary(data) {
@@ -435,7 +435,7 @@ async function runModel() {
 }
 
 // ==========================================
-// ADVANCED CHART
+// CHART
 // ==========================================
 
 function renderChart(results) {
@@ -480,8 +480,6 @@ function renderChart(results) {
 
                     datasets: [
 
-                        // REAL
-
                         {
                             label:
                                 "Real",
@@ -492,15 +490,10 @@ function renderChart(results) {
                             borderColor:
                                 "#ff6b00",
 
-                            backgroundColor:
-                                "rgba(255,107,0,0.08)",
-
                             borderWidth: 3,
 
                             tension: 0.3
                         },
-
-                        // PREDICTED
 
                         {
                             label:
@@ -512,15 +505,10 @@ function renderChart(results) {
                             borderColor:
                                 "#00a3ff",
 
-                            backgroundColor:
-                                "rgba(0,163,255,0.08)",
-
                             borderWidth: 3,
 
                             tension: 0.3
                         },
-
-                        // SMA
 
                         {
                             label:
@@ -532,14 +520,10 @@ function renderChart(results) {
                             borderColor:
                                 "#39ff14",
 
-                            borderWidth: 2,
+                            borderDash: [5, 5],
 
-                            tension: 0.4,
-
-                            borderDash: [5, 5]
+                            borderWidth: 2
                         },
-
-                        // EMA
 
                         {
                             label:
@@ -551,9 +535,7 @@ function renderChart(results) {
                             borderColor:
                                 "#ffd700",
 
-                            borderWidth: 2,
-
-                            tension: 0.4
+                            borderWidth: 2
                         }
                     ]
                 },
@@ -577,12 +559,7 @@ function renderChart(results) {
 
                             labels: {
 
-                                color: "#ffffff",
-
-                                font: {
-
-                                    size: 13
-                                }
+                                color: "#ffffff"
                             }
                         }
                     },
@@ -801,6 +778,77 @@ async function runVariableAnalysis(
 }
 
 // ==========================================
+// INSIGHTS
+// ==========================================
+
+function renderInsights(insights) {
+
+    if (
+        !insights
+        ||
+        insights.length === 0
+    ) {
+
+        return "";
+    }
+
+    let html = `
+
+        <div class="insights-container">
+
+            <div class="ai-analytics-header">
+
+                <div class="ai-pulse"></div>
+
+                <div class="insights-title">
+
+                    AI ANALYTICS
+
+                </div>
+
+            </div>
+    `;
+
+    insights.forEach(insight => {
+
+        html += `
+
+            <div class="
+                insight-card
+                insight-${insight.severity}
+            ">
+
+                <div class="
+                    insight-badge
+                    badge-${insight.severity}
+                ">
+
+                    ${insight.severity.toUpperCase()}
+
+                </div>
+
+                <div class="insight-title">
+
+                    ${insight.title}
+
+                </div>
+
+                <div class="insight-message">
+
+                    ${insight.message}
+
+                </div>
+
+            </div>
+        `;
+    });
+
+    html += `</div>`;
+
+    return html;
+}
+
+// ==========================================
 // RENDER STATISTICS
 // ==========================================
 
@@ -848,12 +896,20 @@ function renderStatistics(data) {
 
     html += `</div>`;
 
+    // ==========================================
+    // AI INSIGHTS
+    // ==========================================
+
+    html += renderInsights(
+        data.insights
+    );
+
     container.innerHTML =
         html;
 }
 
 // ==========================================
-// CREATE CARD
+// CARD
 // ==========================================
 
 function createStatCard(
