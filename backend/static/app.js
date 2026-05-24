@@ -1,5 +1,5 @@
 // ==========================================
-// MIDAS REACTIVE BINDING ENGINE
+// MIDAS REACTIVE FORECAST ENGINE
 // ==========================================
 
 // ==========================================
@@ -18,7 +18,9 @@ const MIDAS = {
 
     selectedFeatures: [],
 
-    selectedTemporal: null
+    selectedTemporal: null,
+
+    forecastHorizon: 3
 };
 
 // ==========================================
@@ -367,10 +369,6 @@ function populateModelWorkspace() {
         return;
     }
 
-    // ==========================================
-    // CREATE STRUCTURE ONCE
-    // ==========================================
-
     container.innerHTML = `
 
         <div class="config-group">
@@ -390,6 +388,38 @@ function populateModelWorkspace() {
             </label>
 
             <select id="targetVariable"></select>
+
+        </div>
+
+        <div class="config-group">
+
+            <label>
+                Forecast Horizon
+            </label>
+
+            <select id="forecastHorizon">
+
+                <option value="1">
+                    1 período
+                </option>
+
+                <option value="3" selected>
+                    3 períodos
+                </option>
+
+                <option value="6">
+                    6 períodos
+                </option>
+
+                <option value="12">
+                    12 períodos
+                </option>
+
+                <option value="24">
+                    24 períodos
+                </option>
+
+            </select>
 
         </div>
 
@@ -594,9 +624,7 @@ function updateFeatures() {
 
 function bindWorkspaceEvents() {
 
-    // ==========================================
     // TARGET
-    // ==========================================
 
     document
         .getElementById(
@@ -623,9 +651,7 @@ function bindWorkspaceEvents() {
             }
         );
 
-    // ==========================================
     // TEMPORAL
-    // ==========================================
 
     document
         .getElementById(
@@ -641,9 +667,23 @@ function bindWorkspaceEvents() {
             }
         );
 
-    // ==========================================
+    // FORECAST
+
+    document
+        .getElementById(
+            "forecastHorizon"
+        )
+        ?.addEventListener(
+            "change",
+
+            function () {
+
+                MIDAS.forecastHorizon =
+                    parseInt(this.value);
+            }
+        );
+
     // MODEL
-    // ==========================================
 
     document
         .getElementById(
@@ -654,9 +694,7 @@ function bindWorkspaceEvents() {
             runModel
         );
 
-    // ==========================================
     // DOWNLOAD
-    // ==========================================
 
     document
         .getElementById(
@@ -730,7 +768,7 @@ async function runModel() {
     }
 
     setStatus(
-        "Executando modelo"
+        "Executando forecast"
     );
 
     try {
@@ -755,7 +793,10 @@ async function runModel() {
                             MIDAS.selectedTarget,
 
                         features:
-                            MIDAS.selectedFeatures
+                            MIDAS.selectedFeatures,
+
+                        forecast_horizon:
+                            MIDAS.forecastHorizon
                     })
                 }
             );
@@ -771,7 +812,7 @@ async function runModel() {
         if (data.error) {
 
             setStatus(
-                "Erro modelo"
+                "Erro forecast"
             );
 
             alert(data.error);
@@ -789,7 +830,7 @@ async function runModel() {
         renderModelResults();
 
         setStatus(
-            "Modelo executado"
+            "Forecast executado"
         );
 
     } catch (error) {
@@ -830,6 +871,44 @@ function renderChart(results) {
         predictionChart.destroy();
     }
 
+    const historicalLabels =
+        [...results.time_values];
+
+    const futureLabels =
+        [...results.future_dates];
+
+    const allLabels =
+        historicalLabels.concat(
+            futureLabels
+        );
+
+    const realSeries =
+        [
+            ...results.actual_values,
+
+            ...Array(
+                futureLabels.length
+            ).fill(null)
+        ];
+
+    const predictedSeries =
+        [
+            ...results.predicted_values,
+
+            ...Array(
+                futureLabels.length
+            ).fill(null)
+        ];
+
+    const forecastSeries =
+        [
+            ...Array(
+                historicalLabels.length
+            ).fill(null),
+
+            ...results.future_predictions
+        ];
+
     predictionChart =
         new Chart(
             ctx,
@@ -839,7 +918,7 @@ function renderChart(results) {
                 data: {
 
                     labels:
-                        results.time_values,
+                        allLabels,
 
                     datasets: [
 
@@ -848,7 +927,7 @@ function renderChart(results) {
                                 "Real",
 
                             data:
-                                results.actual_values,
+                                realSeries,
 
                             borderColor:
                                 "#ff7b00",
@@ -861,12 +940,28 @@ function renderChart(results) {
                                 "Predito",
 
                             data:
-                                results.predicted_values,
+                                predictedSeries,
 
                             borderColor:
                                 "#00c8ff",
 
                             borderWidth: 3
+                        },
+
+                        {
+                            label:
+                                "Forecast",
+
+                            data:
+                                forecastSeries,
+
+                            borderColor:
+                                "#39ff14",
+
+                            borderWidth: 3,
+
+                            borderDash:
+                                [6, 6]
                         }
                     ]
                 },
@@ -930,6 +1025,46 @@ function renderModelResults() {
         `;
     });
 
+    let forecastPanel = "";
+
+    if (
+        model.future_predictions
+    ) {
+
+        forecastPanel = `
+
+            <div class="coefficients-panel"
+                 style="margin-top:18px;">
+
+                <h3>
+                    FORECAST
+                </h3>
+
+                ${model.future_predictions
+                    .map((value, index) => `
+
+                        <div class="coefficient-row">
+
+                            <div class="coef-name">
+
+                                ${model.future_dates[index]}
+
+                            </div>
+
+                            <div class="coef-value">
+
+                                ${formatNumber(value)}
+
+                            </div>
+
+                        </div>
+
+                    `).join("")}
+
+            </div>
+        `;
+    }
+
     panel.innerHTML = `
 
         <div class="model-results-panel">
@@ -981,12 +1116,12 @@ function renderModelResults() {
                 <div class="result-card">
 
                     <div class="result-label">
-                        OBS
+                        FORECAST
                     </div>
 
                     <div class="result-value">
 
-                        ${model.observations}
+                        ${model.forecast_horizon}
 
                     </div>
 
@@ -1003,6 +1138,8 @@ function renderModelResults() {
                 ${coefficients}
 
             </div>
+
+            ${forecastPanel}
 
         </div>
     `;
