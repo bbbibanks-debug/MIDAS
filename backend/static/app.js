@@ -1,109 +1,10 @@
 // ==========================================
-// MIDAS CORE REBUILD ENGINE
+// MIDAS FINAL SYNC ENGINE
 // ==========================================
 
 let uploadedData = null;
 
 let predictionChart = null;
-
-// ==========================================
-// FORMAT NUMBER
-// ==========================================
-
-function formatNumber(value) {
-
-    if (
-        value === null
-        ||
-        value === undefined
-        ||
-        isNaN(value)
-    ) {
-
-        return "-";
-    }
-
-    return Number(value)
-        .toLocaleString(
-            "pt-BR",
-            {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }
-        );
-}
-
-// ==========================================
-// SMA
-// ==========================================
-
-function calculateSMA(values, period = 5) {
-
-    let sma = [];
-
-    for (let i = 0; i < values.length; i++) {
-
-        if (i < period - 1) {
-
-            sma.push(null);
-
-            continue;
-        }
-
-        const subset =
-            values.slice(
-                i - period + 1,
-                i + 1
-            );
-
-        const avg =
-            subset.reduce(
-                (a, b) => a + b,
-                0
-            ) / period;
-
-        sma.push(avg);
-    }
-
-    return sma;
-}
-
-// ==========================================
-// EMA
-// ==========================================
-
-function calculateEMA(values, period = 5) {
-
-    let ema = [];
-
-    const multiplier =
-        2 / (period + 1);
-
-    let previousEMA =
-        values[0];
-
-    ema.push(previousEMA);
-
-    for (let i = 1; i < values.length; i++) {
-
-        const currentEMA = (
-
-            (
-                values[i]
-                - previousEMA
-            )
-
-            * multiplier
-
-        ) + previousEMA;
-
-        ema.push(currentEMA);
-
-        previousEMA = currentEMA;
-    }
-
-    return ema;
-}
 
 // ==========================================
 // INIT
@@ -139,7 +40,51 @@ function initializeSystem() {
 
     initializeAnalyticsButtons();
 
+    initializeDownloadButton();
+
     loadAnalyticsHistory();
+}
+
+// ==========================================
+// FORMAT NUMBER
+// ==========================================
+
+function formatNumber(value) {
+
+    if (
+        value === null
+        ||
+        value === undefined
+        ||
+        isNaN(value)
+    ) {
+
+        return "-";
+    }
+
+    return Number(value)
+        .toLocaleString(
+            "pt-BR",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+}
+
+// ==========================================
+// SET TEXT
+// ==========================================
+
+function setText(id, value) {
+
+    const el =
+        document.getElementById(id);
+
+    if (el) {
+
+        el.innerText = value;
+    }
 }
 
 // ==========================================
@@ -190,6 +135,11 @@ async function uploadFile() {
         const data =
             await response.json();
 
+        console.log(
+            "UPLOAD RESPONSE:",
+            data
+        );
+
         if (data.error) {
 
             alert(data.error);
@@ -201,9 +151,9 @@ async function uploadFile() {
 
         updateSummary(data);
 
-        renderModelConfig(data);
-
         populateStatisticsVariable(data);
+
+        renderModelConfig(data);
 
         alert(
             "Dataset carregado com sucesso."
@@ -214,7 +164,7 @@ async function uploadFile() {
         console.error(error);
 
         alert(
-            "Erro ao carregar dataset."
+            "Erro no upload."
         );
     }
 }
@@ -224,6 +174,11 @@ async function uploadFile() {
 // ==========================================
 
 function updateSummary(data) {
+
+    if (!data.dataset_info) {
+
+        return;
+    }
 
     setText(
         "summaryRows",
@@ -237,28 +192,63 @@ function updateSummary(data) {
 
     setText(
         "summaryNumeric",
-        data.numeric_columns.length
+        data.numeric_columns?.length || 0
     );
 
     setText(
         "summaryDatetime",
-        data.possible_time_columns.length
+        data.possible_time_columns?.length || 0
     );
 }
 
 // ==========================================
-// SET TEXT
+// POPULATE STATISTICS
 // ==========================================
 
-function setText(id, value) {
+function populateStatisticsVariable(data) {
 
-    const el =
-        document.getElementById(id);
+    const select =
+        document.getElementById(
+            "statisticsVariable"
+        );
 
-    if (el) {
+    if (!select) {
 
-        el.innerText = value;
+        return;
     }
+
+    select.innerHTML = "";
+
+    const numeric =
+        data.numeric_columns || [];
+
+    const defaultOption =
+        document.createElement(
+            "option"
+        );
+
+    defaultOption.value = "";
+
+    defaultOption.textContent =
+        "Selecione uma variável";
+
+    select.appendChild(
+        defaultOption
+    );
+
+    numeric.forEach(col => {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value = col;
+
+        option.textContent = col;
+
+        select.appendChild(option);
+    });
 }
 
 // ==========================================
@@ -289,7 +279,7 @@ function renderModelConfig(data) {
 
             <div class="empty-state">
 
-                O dataset precisa possuir pelo menos
+                São necessárias pelo menos
                 duas variáveis numéricas.
 
             </div>
@@ -304,32 +294,17 @@ function renderModelConfig(data) {
 
     let temporalOptions = "";
 
-    if (temporal.length === 0) {
+    temporal.forEach(col => {
 
-        temporalOptions = `
+        temporalOptions += `
 
-            <option value="index">
+            <option value="${col}">
 
-                Índice Temporal
+                ${col}
 
             </option>
         `;
-    }
-
-    else {
-
-        temporal.forEach(col => {
-
-            temporalOptions += `
-
-                <option value="${col}">
-
-                    ${col}
-
-                </option>
-            `;
-        });
-    }
+    });
 
     // ==========================================
     // TARGET
@@ -431,7 +406,21 @@ function renderModelConfig(data) {
             EXECUTAR MODELO
 
         </button>
+
+        <button
+            id="downloadButton"
+            class="primary-button"
+            style="margin-top:12px;"
+        >
+
+            DOWNLOAD RESULTADOS
+
+        </button>
     `;
+
+    // ==========================================
+    // EVENTS
+    // ==========================================
 
     const runButton =
         document.getElementById(
@@ -445,102 +434,85 @@ function renderModelConfig(data) {
             runModel
         );
     }
+
+    initializeDownloadButton();
 }
 
 // ==========================================
-// STATISTICS VARIABLE
-// ==========================================
-
-function populateStatisticsVariable(data) {
-
-    const select =
-        document.getElementById(
-            "statisticsVariable"
-        );
-
-    if (!select) {
-
-        return;
-    }
-
-    select.innerHTML = "";
-
-    const defaultOption =
-        document.createElement(
-            "option"
-        );
-
-    defaultOption.value = "";
-
-    defaultOption.textContent =
-        "Selecione uma variável";
-
-    select.appendChild(
-        defaultOption
-    );
-
-    data.numeric_columns.forEach(col => {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-        option.value = col;
-
-        option.textContent = col;
-
-        select.appendChild(option);
-    });
-}
-
-// ==========================================
-// MODEL
+// RUN MODEL
 // ==========================================
 
 async function runModel() {
 
-    if (!uploadedData) {
-
-        alert(
-            "Carregue um dataset."
-        );
-
-        return;
-    }
-
-    const target =
-        document.getElementById(
-            "targetVariable"
-        )?.value;
-
-    const temporal =
-        document.getElementById(
-            "dateColumn"
-        )?.value || "index";
-
-    const checked =
-        document.querySelectorAll(
-            ".features-grid input:checked"
-        );
-
-    let features = [];
-
-    checked.forEach(item => {
-
-        features.push(item.value);
-    });
-
-    if (features.length === 0) {
-
-        alert(
-            "Selecione pelo menos uma variável explicativa."
-        );
-
-        return;
-    }
-
     try {
+
+        if (!uploadedData) {
+
+            alert(
+                "Carregue um dataset."
+            );
+
+            return;
+        }
+
+        const target =
+            document.getElementById(
+                "targetVariable"
+            )?.value;
+
+        const temporal =
+            document.getElementById(
+                "dateColumn"
+            )?.value;
+
+        const checked =
+            document.querySelectorAll(
+                ".features-grid input:checked"
+            );
+
+        let features = [];
+
+        checked.forEach(item => {
+
+            features.push(
+                item.value
+            );
+        });
+
+        if (!target) {
+
+            alert(
+                "Selecione variável alvo."
+            );
+
+            return;
+        }
+
+        if (features.length === 0) {
+
+            alert(
+                "Selecione ao menos uma variável explicativa."
+            );
+
+            return;
+        }
+
+        const payload = {
+
+            date_column:
+                temporal,
+
+            target_variable:
+                target,
+
+            features:
+                features
+        };
+
+        console.log(
+            "MODEL PAYLOAD:",
+            payload
+        );
 
         const response =
             await fetch(
@@ -553,22 +525,19 @@ async function runModel() {
                             "application/json"
                     },
 
-                    body: JSON.stringify({
-
-                        date_column:
-                            temporal,
-
-                        target_variable:
-                            target,
-
-                        features:
-                            features
-                    })
+                    body: JSON.stringify(
+                        payload
+                    )
                 }
             );
 
         const data =
             await response.json();
+
+        console.log(
+            "MODEL RESPONSE:",
+            data
+        );
 
         if (data.error) {
 
@@ -602,15 +571,10 @@ function renderChart(results) {
             "predictionChart"
         );
 
-    if (!canvas) {
-
-        return;
-    }
-
     if (
-        !results
+        !canvas
         ||
-        !results.actual_values
+        !results
     ) {
 
         return;
@@ -623,18 +587,6 @@ function renderChart(results) {
 
         predictionChart.destroy();
     }
-
-    const actual =
-        results.actual_values;
-
-    const predicted =
-        results.predicted_values;
-
-    const sma =
-        calculateSMA(actual);
-
-    const ema =
-        calculateEMA(actual);
 
     predictionChart =
         new Chart(
@@ -654,7 +606,7 @@ function renderChart(results) {
                                 "Real",
 
                             data:
-                                actual,
+                                results.actual_values,
 
                             borderColor:
                                 "#ff6b00",
@@ -667,40 +619,12 @@ function renderChart(results) {
                                 "Predito",
 
                             data:
-                                predicted,
+                                results.predicted_values,
 
                             borderColor:
                                 "#00a3ff",
 
                             borderWidth: 3
-                        },
-
-                        {
-                            label:
-                                "SMA",
-
-                            data:
-                                sma,
-
-                            borderColor:
-                                "#39ff14",
-
-                            borderWidth: 2,
-
-                            borderDash: [5, 5]
-                        },
-
-                        {
-                            label:
-                                "EMA",
-
-                            data:
-                                ema,
-
-                            borderColor:
-                                "#ffd700",
-
-                            borderWidth: 2
                         }
                     ]
                 },
@@ -779,6 +703,20 @@ async function runVariableAnalysis(
 
     try {
 
+        const payload = {
+
+            variable:
+                variable,
+
+            analysis_type:
+                analysisType
+        };
+
+        console.log(
+            "ANALYSIS PAYLOAD:",
+            payload
+        );
+
         const response =
             await fetch(
                 "/variable-analysis",
@@ -790,19 +728,19 @@ async function runVariableAnalysis(
                             "application/json"
                     },
 
-                    body: JSON.stringify({
-
-                        variable:
-                            variable,
-
-                        analysis_type:
-                            analysisType
-                    })
+                    body: JSON.stringify(
+                        payload
+                    )
                 }
             );
 
         const data =
             await response.json();
+
+        console.log(
+            "ANALYSIS RESPONSE:",
+            data
+        );
 
         if (data.error) {
 
@@ -874,10 +812,6 @@ function renderStatistics(data) {
 
     html += `</div>`;
 
-    // ==========================================
-    // INSIGHTS
-    // ==========================================
-
     if (
         data.insights
         &&
@@ -927,6 +861,35 @@ function renderStatistics(data) {
     }
 
     container.innerHTML = html;
+}
+
+// ==========================================
+// DOWNLOAD
+// ==========================================
+
+function initializeDownloadButton() {
+
+    const button =
+        document.getElementById(
+            "downloadButton"
+        );
+
+    if (!button) {
+
+        return;
+    }
+
+    button.addEventListener(
+        "click",
+
+        function () {
+
+            window.open(
+                "/download-predictions",
+                "_blank"
+            );
+        }
+    );
 }
 
 // ==========================================
