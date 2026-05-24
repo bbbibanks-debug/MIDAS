@@ -1,24 +1,24 @@
 // ==========================================
-// MIDAS REACTIVE MODEL ENGINE
+// MIDAS REACTIVE BINDING ENGINE
 // ==========================================
 
 // ==========================================
 // GLOBAL STATE
 // ==========================================
 
-const MIDAS_STATE = {
+const MIDAS = {
 
     dataset: null,
+
+    modelResults: null,
+
+    statisticsResults: null,
 
     selectedTarget: null,
 
     selectedFeatures: [],
 
-    selectedTemporal: null,
-
-    modelResults: null,
-
-    statisticsResults: null
+    selectedTemporal: null
 };
 
 // ==========================================
@@ -34,10 +34,7 @@ let predictionChart = null;
 document.addEventListener(
     "DOMContentLoaded",
 
-    function () {
-
-        initializeMIDAS();
-    }
+    initializeMIDAS
 );
 
 // ==========================================
@@ -46,17 +43,95 @@ document.addEventListener(
 
 function initializeMIDAS() {
 
-    initializeUpload();
-
-    initializeAnalyticsButtons();
-
-    initializeDownloadButton();
+    bindStaticEvents();
 
     loadAnalyticsHistory();
 }
 
 // ==========================================
-// FORMAT NUMBER
+// STATIC EVENTS
+// ==========================================
+
+function bindStaticEvents() {
+
+    // ==========================================
+    // UPLOAD
+    // ==========================================
+
+    const uploadButton =
+        document.getElementById(
+            "uploadButton"
+        );
+
+    if (uploadButton) {
+
+        uploadButton.addEventListener(
+            "click",
+            uploadDataset
+        );
+    }
+
+    // ==========================================
+    // ANALYTICS
+    // ==========================================
+
+    document
+        .querySelectorAll(
+            ".analysis-button"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+
+                async function () {
+
+                    const variable =
+                        document.getElementById(
+                            "statisticsVariable"
+                        )?.value;
+
+                    if (!variable) {
+
+                        alert(
+                            "Selecione uma variável."
+                        );
+
+                        return;
+                    }
+
+                    const analysis =
+                        this.dataset.analysis;
+
+                    await runAnalysis(
+                        variable,
+                        analysis
+                    );
+                }
+            );
+        });
+}
+
+// ==========================================
+// STATUS
+// ==========================================
+
+function setStatus(message) {
+
+    const el =
+        document.querySelector(
+            ".status-live"
+        );
+
+    if (el) {
+
+        el.innerText =
+            `● ${message.toUpperCase()}`;
+    }
+}
+
+// ==========================================
+// FORMAT
 // ==========================================
 
 function formatNumber(value) {
@@ -101,28 +176,6 @@ function setText(id, value) {
 // UPLOAD
 // ==========================================
 
-function initializeUpload() {
-
-    const button =
-        document.getElementById(
-            "uploadButton"
-        );
-
-    if (!button) {
-
-        return;
-    }
-
-    button.addEventListener(
-        "click",
-        uploadDataset
-    );
-}
-
-// ==========================================
-// UPLOAD DATASET
-// ==========================================
-
 async function uploadDataset() {
 
     const fileInput =
@@ -132,8 +185,6 @@ async function uploadDataset() {
 
     if (
         !fileInput
-        ||
-        !fileInput.files
         ||
         !fileInput.files[0]
     ) {
@@ -153,8 +204,8 @@ async function uploadDataset() {
         fileInput.files[0]
     );
 
-    showSystemStatus(
-        "Carregando dataset..."
+    setStatus(
+        "Carregando dataset"
     );
 
     try {
@@ -178,8 +229,8 @@ async function uploadDataset() {
 
         if (data.error) {
 
-            showSystemStatus(
-                "Erro no upload."
+            setStatus(
+                "Erro upload"
             );
 
             alert(data.error);
@@ -187,30 +238,26 @@ async function uploadDataset() {
             return;
         }
 
-        MIDAS_STATE.dataset = data;
+        MIDAS.dataset = data;
 
-        initializeDatasetState(data);
+        initializeState(data);
 
-        updateSummaryRibbon(data);
+        updateSummary(data);
 
-        populateStatisticsVariable(data);
+        populateStatisticsVariables();
 
-        renderModelWorkspace();
+        populateModelWorkspace();
 
-        showSystemStatus(
-            "Dataset carregado."
+        setStatus(
+            "Dataset carregado"
         );
 
     } catch (error) {
 
         console.error(error);
 
-        showSystemStatus(
-            "Falha operacional."
-        );
-
-        alert(
-            "Erro ao carregar dataset."
+        setStatus(
+            "Falha operacional"
         );
     }
 }
@@ -219,31 +266,23 @@ async function uploadDataset() {
 // INITIALIZE STATE
 // ==========================================
 
-function initializeDatasetState(data) {
+function initializeState(data) {
 
-    const suggestions =
-        data.suggestions || {};
+    MIDAS.selectedTarget =
+        data.suggestions.target_variable;
 
-    MIDAS_STATE.selectedTarget =
-        suggestions.target_variable;
+    MIDAS.selectedFeatures =
+        [...data.suggestions.features];
 
-    MIDAS_STATE.selectedFeatures =
-        suggestions.features || [];
-
-    MIDAS_STATE.selectedTemporal =
-        suggestions.date_column;
+    MIDAS.selectedTemporal =
+        data.suggestions.date_column;
 }
 
 // ==========================================
 // SUMMARY
 // ==========================================
 
-function updateSummaryRibbon(data) {
-
-    if (!data.dataset_info) {
-
-        return;
-    }
+function updateSummary(data) {
 
     setText(
         "summaryRows",
@@ -267,196 +306,69 @@ function updateSummaryRibbon(data) {
 }
 
 // ==========================================
+// STATISTICS VARIABLES
+// ==========================================
+
+function populateStatisticsVariables() {
+
+    const select =
+        document.getElementById(
+            "statisticsVariable"
+        );
+
+    if (!select) {
+
+        return;
+    }
+
+    select.innerHTML = "";
+
+    const option =
+        document.createElement(
+            "option"
+        );
+
+    option.value = "";
+
+    option.textContent =
+        "Selecione uma variável";
+
+    select.appendChild(option);
+
+    MIDAS.dataset.numeric_columns
+        .forEach(col => {
+
+            const el =
+                document.createElement(
+                    "option"
+                );
+
+            el.value = col;
+
+            el.textContent = col;
+
+            select.appendChild(el);
+        });
+}
+
+// ==========================================
 // MODEL WORKSPACE
 // ==========================================
 
-function renderModelWorkspace() {
+function populateModelWorkspace() {
 
     const container =
         document.getElementById(
             "modelConfig"
         );
 
-    if (
-        !container
-        ||
-        !MIDAS_STATE.dataset
-    ) {
+    if (!container) {
 
         return;
     }
 
-    const data =
-        MIDAS_STATE.dataset;
-
-    const numeric =
-        data.numeric_columns || [];
-
-    const temporal =
-        data.possible_time_columns || [];
-
     // ==========================================
-    // TEMPORAL
-    // ==========================================
-
-    let temporalOptions = "";
-
-    temporal.forEach(col => {
-
-        temporalOptions += `
-
-            <option
-                value="${col}"
-                ${MIDAS_STATE.selectedTemporal === col ? "selected" : ""}
-            >
-
-                ${col}
-
-            </option>
-        `;
-    });
-
-    // ==========================================
-    // TARGET
-    // ==========================================
-
-    let targetOptions = "";
-
-    numeric.forEach(col => {
-
-        targetOptions += `
-
-            <option
-                value="${col}"
-                ${MIDAS_STATE.selectedTarget === col ? "selected" : ""}
-            >
-
-                ${col}
-
-            </option>
-        `;
-    });
-
-    // ==========================================
-    // FEATURES
-    // ==========================================
-
-    let featureOptions = "";
-
-    numeric.forEach(col => {
-
-        if (
-            col !== MIDAS_STATE.selectedTarget
-        ) {
-
-            featureOptions += `
-
-                <label class="feature-item">
-
-                    <input
-                        type="checkbox"
-                        value="${col}"
-                        ${MIDAS_STATE.selectedFeatures.includes(col) ? "checked" : ""}
-                    >
-
-                    ${col}
-
-                </label>
-            `;
-        }
-    });
-
-    // ==========================================
-    // MODEL RESULTS
-    // ==========================================
-
-    let resultsPanel = "";
-
-    if (MIDAS_STATE.modelResults) {
-
-        const model =
-            MIDAS_STATE.modelResults;
-
-        resultsPanel = `
-
-            <div class="model-results-panel">
-
-                <div class="results-grid">
-
-                    <div class="result-card">
-
-                        <div class="result-label">
-                            R²
-                        </div>
-
-                        <div class="result-value">
-
-                            ${formatNumber(model.r2)}
-
-                        </div>
-
-                    </div>
-
-                    <div class="result-card">
-
-                        <div class="result-label">
-                            RMSE
-                        </div>
-
-                        <div class="result-value">
-
-                            ${formatNumber(model.rmse)}
-
-                        </div>
-
-                    </div>
-
-                    <div class="result-card">
-
-                        <div class="result-label">
-                            MAE
-                        </div>
-
-                        <div class="result-value">
-
-                            ${formatNumber(model.mae)}
-
-                        </div>
-
-                    </div>
-
-                    <div class="result-card">
-
-                        <div class="result-label">
-                            OBSERVAÇÕES
-                        </div>
-
-                        <div class="result-value">
-
-                            ${model.observations}
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div class="coefficients-panel">
-
-                    <h3>
-                        COEFICIENTES
-                    </h3>
-
-                    ${renderCoefficients(model.coefficients)}
-
-                </div>
-
-            </div>
-        `;
-    }
-
-    // ==========================================
-    // FINAL
+    // CREATE STRUCTURE ONCE
     // ==========================================
 
     container.innerHTML = `
@@ -467,11 +379,7 @@ function renderModelWorkspace() {
                 Coluna Temporal
             </label>
 
-            <select id="dateColumn">
-
-                ${temporalOptions}
-
-            </select>
+            <select id="dateColumn"></select>
 
         </div>
 
@@ -481,11 +389,7 @@ function renderModelWorkspace() {
                 Variável Alvo
             </label>
 
-            <select id="targetVariable">
-
-                ${targetOptions}
-
-            </select>
+            <select id="targetVariable"></select>
 
         </div>
 
@@ -495,11 +399,10 @@ function renderModelWorkspace() {
                 Variáveis Explicativas
             </label>
 
-            <div class="features-grid">
-
-                ${featureOptions}
-
-            </div>
+            <div
+                class="features-grid"
+                id="featuresGrid"
+            ></div>
 
         </div>
 
@@ -522,187 +425,300 @@ function renderModelWorkspace() {
 
         </button>
 
-        ${resultsPanel}
+        <div
+            id="modelResultsPanel"
+        ></div>
     `;
 
-    initializeReactiveControls();
+    bindWorkspaceEvents();
+
+    updateWorkspaceValues();
 }
 
 // ==========================================
-// COEFFICIENTS
+// UPDATE WORKSPACE
 // ==========================================
 
-function renderCoefficients(coefficients) {
+function updateWorkspaceValues() {
 
-    if (!coefficients) {
+    updateTemporalSelect();
 
-        return "";
-    }
+    updateTargetSelect();
 
-    let html = "";
+    updateFeatures();
 
-    Object.entries(
-        coefficients
-    ).forEach(([key, value]) => {
-
-        html += `
-
-            <div class="coefficient-row">
-
-                <div class="coef-name">
-
-                    ${key}
-
-                </div>
-
-                <div class="coef-value">
-
-                    ${formatNumber(value)}
-
-                </div>
-
-            </div>
-        `;
-    });
-
-    return html;
+    renderModelResults();
 }
 
 // ==========================================
-// REACTIVE CONTROLS
+// TEMPORAL
 // ==========================================
 
-function initializeReactiveControls() {
+function updateTemporalSelect() {
 
-    const targetSelect =
-        document.getElementById(
-            "targetVariable"
-        );
-
-    if (targetSelect) {
-
-        targetSelect.addEventListener(
-            "change",
-
-            function () {
-
-                MIDAS_STATE.selectedTarget =
-                    this.value;
-
-                recalculateFeatures();
-
-                renderModelWorkspace();
-            }
-        );
-    }
-
-    const dateSelect =
+    const select =
         document.getElementById(
             "dateColumn"
         );
 
-    if (dateSelect) {
-
-        dateSelect.addEventListener(
-            "change",
-
-            function () {
-
-                MIDAS_STATE.selectedTemporal =
-                    this.value;
-            }
-        );
-    }
-
-    const checkboxes =
-        document.querySelectorAll(
-            ".features-grid input"
-        );
-
-    checkboxes.forEach(box => {
-
-        box.addEventListener(
-            "change",
-
-            function () {
-
-                updateFeaturesState();
-            }
-        );
-    });
-
-    const runButton =
-        document.getElementById(
-            "runModelButton"
-        );
-
-    if (runButton) {
-
-        runButton.addEventListener(
-            "click",
-            runModel
-        );
-    }
-
-    initializeDownloadButton();
-}
-
-// ==========================================
-// RECALCULATE FEATURES
-// ==========================================
-
-function recalculateFeatures() {
-
-    const numeric =
-        MIDAS_STATE.dataset
-        .numeric_columns;
-
-    MIDAS_STATE.selectedFeatures =
-        numeric.filter(
-
-            col =>
-            col !== MIDAS_STATE.selectedTarget
-        );
-}
-
-// ==========================================
-// UPDATE FEATURES
-// ==========================================
-
-function updateFeaturesState() {
-
-    const checked =
-        document.querySelectorAll(
-            ".features-grid input:checked"
-        );
-
-    MIDAS_STATE.selectedFeatures = [];
-
-    checked.forEach(item => {
-
-        MIDAS_STATE.selectedFeatures.push(
-            item.value
-        );
-    });
-}
-
-// ==========================================
-// RUN MODEL
-// ==========================================
-
-async function runModel() {
-
-    if (!MIDAS_STATE.dataset) {
-
-        alert(
-            "Carregue um dataset."
-        );
+    if (!select) {
 
         return;
     }
 
+    select.innerHTML = "";
+
+    MIDAS.dataset
+        .possible_time_columns
+        .forEach(col => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value = col;
+
+            option.textContent = col;
+
+            if (
+                MIDAS.selectedTemporal === col
+            ) {
+
+                option.selected = true;
+            }
+
+            select.appendChild(option);
+        });
+}
+
+// ==========================================
+// TARGET
+// ==========================================
+
+function updateTargetSelect() {
+
+    const select =
+        document.getElementById(
+            "targetVariable"
+        );
+
+    if (!select) {
+
+        return;
+    }
+
+    select.innerHTML = "";
+
+    MIDAS.dataset
+        .numeric_columns
+        .forEach(col => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value = col;
+
+            option.textContent = col;
+
+            if (
+                MIDAS.selectedTarget === col
+            ) {
+
+                option.selected = true;
+            }
+
+            select.appendChild(option);
+        });
+}
+
+// ==========================================
+// FEATURES
+// ==========================================
+
+function updateFeatures() {
+
+    const grid =
+        document.getElementById(
+            "featuresGrid"
+        );
+
+    if (!grid) {
+
+        return;
+    }
+
+    grid.innerHTML = "";
+
+    MIDAS.dataset
+        .numeric_columns
+        .forEach(col => {
+
+            if (
+                col === MIDAS.selectedTarget
+            ) {
+
+                return;
+            }
+
+            const label =
+                document.createElement(
+                    "label"
+                );
+
+            label.className =
+                "feature-item";
+
+            label.innerHTML = `
+
+                <input
+                    type="checkbox"
+                    value="${col}"
+                    ${MIDAS.selectedFeatures.includes(col) ? "checked" : ""}
+                >
+
+                ${col}
+            `;
+
+            grid.appendChild(label);
+        });
+
+    bindFeatureEvents();
+}
+
+// ==========================================
+// WORKSPACE EVENTS
+// ==========================================
+
+function bindWorkspaceEvents() {
+
+    // ==========================================
+    // TARGET
+    // ==========================================
+
+    document
+        .getElementById(
+            "targetVariable"
+        )
+        ?.addEventListener(
+            "change",
+
+            function () {
+
+                MIDAS.selectedTarget =
+                    this.value;
+
+                MIDAS.selectedFeatures =
+                    MIDAS.dataset
+                    .numeric_columns
+                    .filter(
+
+                        col =>
+                        col !== MIDAS.selectedTarget
+                    );
+
+                updateFeatures();
+            }
+        );
+
+    // ==========================================
+    // TEMPORAL
+    // ==========================================
+
+    document
+        .getElementById(
+            "dateColumn"
+        )
+        ?.addEventListener(
+            "change",
+
+            function () {
+
+                MIDAS.selectedTemporal =
+                    this.value;
+            }
+        );
+
+    // ==========================================
+    // MODEL
+    // ==========================================
+
+    document
+        .getElementById(
+            "runModelButton"
+        )
+        ?.addEventListener(
+            "click",
+            runModel
+        );
+
+    // ==========================================
+    // DOWNLOAD
+    // ==========================================
+
+    document
+        .getElementById(
+            "downloadButton"
+        )
+        ?.addEventListener(
+            "click",
+
+            function () {
+
+                window.open(
+                    "/download-predictions",
+                    "_blank"
+                );
+            }
+        );
+}
+
+// ==========================================
+// FEATURES EVENTS
+// ==========================================
+
+function bindFeatureEvents() {
+
+    document
+        .querySelectorAll(
+            "#featuresGrid input"
+        )
+        .forEach(box => {
+
+            box.addEventListener(
+                "change",
+
+                function () {
+
+                    MIDAS.selectedFeatures =
+                        [];
+
+                    document
+                        .querySelectorAll(
+                            "#featuresGrid input:checked"
+                        )
+                        .forEach(item => {
+
+                            MIDAS.selectedFeatures
+                                .push(
+                                    item.value
+                                );
+                        });
+                }
+            );
+        });
+}
+
+// ==========================================
+// MODEL
+// ==========================================
+
+async function runModel() {
+
     if (
-        MIDAS_STATE.selectedFeatures
+        MIDAS.selectedFeatures
         .length === 0
     ) {
 
@@ -713,25 +729,8 @@ async function runModel() {
         return;
     }
 
-    showSystemStatus(
-        "Executando modelo..."
-    );
-
-    const payload = {
-
-        date_column:
-            MIDAS_STATE.selectedTemporal,
-
-        target_variable:
-            MIDAS_STATE.selectedTarget,
-
-        features:
-            MIDAS_STATE.selectedFeatures
-    };
-
-    console.log(
-        "MODEL PAYLOAD:",
-        payload
+    setStatus(
+        "Executando modelo"
     );
 
     try {
@@ -747,9 +746,17 @@ async function runModel() {
                             "application/json"
                     },
 
-                    body: JSON.stringify(
-                        payload
-                    )
+                    body: JSON.stringify({
+
+                        date_column:
+                            MIDAS.selectedTemporal,
+
+                        target_variable:
+                            MIDAS.selectedTarget,
+
+                        features:
+                            MIDAS.selectedFeatures
+                    })
                 }
             );
 
@@ -757,14 +764,14 @@ async function runModel() {
             await response.json();
 
         console.log(
-            "MODEL RESPONSE:",
+            "MODEL:",
             data
         );
 
         if (data.error) {
 
-            showSystemStatus(
-                "Erro operacional."
+            setStatus(
+                "Erro modelo"
             );
 
             alert(data.error);
@@ -772,29 +779,25 @@ async function runModel() {
             return;
         }
 
-        MIDAS_STATE.modelResults =
+        MIDAS.modelResults =
             data.model_results;
 
-        renderModelWorkspace();
-
-        renderPredictionChart(
+        renderChart(
             data.model_results
         );
 
-        showSystemStatus(
-            "Modelo executado."
+        renderModelResults();
+
+        setStatus(
+            "Modelo executado"
         );
 
     } catch (error) {
 
         console.error(error);
 
-        showSystemStatus(
-            "Falha operacional."
-        );
-
-        alert(
-            "Erro ao executar modelo."
+        setStatus(
+            "Falha operacional"
         );
     }
 }
@@ -803,7 +806,7 @@ async function runModel() {
 // CHART
 // ==========================================
 
-function renderPredictionChart(results) {
+function renderChart(results) {
 
     const canvas =
         document.getElementById(
@@ -848,7 +851,7 @@ function renderPredictionChart(results) {
                                 results.actual_values,
 
                             borderColor:
-                                "#ff6b00",
+                                "#ff7b00",
 
                             borderWidth: 3
                         },
@@ -861,7 +864,7 @@ function renderPredictionChart(results) {
                                 results.predicted_values,
 
                             borderColor:
-                                "#00a3ff",
+                                "#00c8ff",
 
                             borderWidth: 3
                         }
@@ -879,105 +882,134 @@ function renderPredictionChart(results) {
 }
 
 // ==========================================
-// STATISTICS
+// MODEL RESULTS
 // ==========================================
 
-function populateStatisticsVariable(data) {
+function renderModelResults() {
 
-    const select =
+    const panel =
         document.getElementById(
-            "statisticsVariable"
+            "modelResultsPanel"
         );
 
-    if (!select) {
+    if (
+        !panel
+        ||
+        !MIDAS.modelResults
+    ) {
 
         return;
     }
 
-    select.innerHTML = "";
+    const model =
+        MIDAS.modelResults;
 
-    const option =
-        document.createElement(
-            "option"
-        );
+    let coefficients = "";
 
-    option.value = "";
+    Object.entries(
+        model.coefficients
+    ).forEach(([key, value]) => {
 
-    option.textContent =
-        "Selecione uma variável";
+        coefficients += `
 
-    select.appendChild(option);
+            <div class="coefficient-row">
 
-    data.numeric_columns.forEach(col => {
+                <div class="coef-name">
 
-        const el =
-            document.createElement(
-                "option"
-            );
+                    ${key}
 
-        el.value = col;
+                </div>
 
-        el.textContent = col;
+                <div class="coef-value">
 
-        select.appendChild(el);
+                    ${formatNumber(value)}
+
+                </div>
+
+            </div>
+        `;
     });
+
+    panel.innerHTML = `
+
+        <div class="model-results-panel">
+
+            <div class="results-grid">
+
+                <div class="result-card">
+
+                    <div class="result-label">
+                        R²
+                    </div>
+
+                    <div class="result-value">
+
+                        ${formatNumber(model.r2)}
+
+                    </div>
+
+                </div>
+
+                <div class="result-card">
+
+                    <div class="result-label">
+                        RMSE
+                    </div>
+
+                    <div class="result-value">
+
+                        ${formatNumber(model.rmse)}
+
+                    </div>
+
+                </div>
+
+                <div class="result-card">
+
+                    <div class="result-label">
+                        MAE
+                    </div>
+
+                    <div class="result-value">
+
+                        ${formatNumber(model.mae)}
+
+                    </div>
+
+                </div>
+
+                <div class="result-card">
+
+                    <div class="result-label">
+                        OBS
+                    </div>
+
+                    <div class="result-value">
+
+                        ${model.observations}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="coefficients-panel">
+
+                <h3>
+                    COEFICIENTES
+                </h3>
+
+                ${coefficients}
+
+            </div>
+
+        </div>
+    `;
 }
 
 // ==========================================
-// ANALYTICS
-// ==========================================
-
-function initializeAnalyticsButtons() {
-
-    const buttons =
-        document.querySelectorAll(
-            ".analysis-button"
-        );
-
-    buttons.forEach(button => {
-
-        button.addEventListener(
-            "click",
-
-            async function () {
-
-                if (!MIDAS_STATE.dataset) {
-
-                    alert(
-                        "Carregue um dataset."
-                    );
-
-                    return;
-                }
-
-                const variable =
-                    document.getElementById(
-                        "statisticsVariable"
-                    )?.value;
-
-                if (!variable) {
-
-                    alert(
-                        "Selecione uma variável."
-                    );
-
-                    return;
-                }
-
-                const analysis =
-                    this.dataset.analysis;
-
-                await runAnalysis(
-                    variable,
-                    analysis
-                );
-            }
-        );
-    });
-}
-
-// ==========================================
-// RUN ANALYSIS
+// ANALYSIS
 // ==========================================
 
 async function runAnalysis(
@@ -985,8 +1017,8 @@ async function runAnalysis(
     analysis
 ) {
 
-    showSystemStatus(
-        "Executando análise..."
+    setStatus(
+        "Executando análise"
     );
 
     try {
@@ -1023,8 +1055,8 @@ async function runAnalysis(
 
         if (data.error) {
 
-            showSystemStatus(
-                "Erro na análise."
+            setStatus(
+                "Erro análise"
             );
 
             alert(data.error);
@@ -1032,33 +1064,26 @@ async function runAnalysis(
             return;
         }
 
-        MIDAS_STATE.statisticsResults =
-            data;
-
         renderStatistics(data);
 
         loadAnalyticsHistory();
 
-        showSystemStatus(
-            "Análise concluída."
+        setStatus(
+            "Análise concluída"
         );
 
     } catch (error) {
 
         console.error(error);
 
-        showSystemStatus(
-            "Falha operacional."
-        );
-
-        alert(
-            "Erro na análise."
+        setStatus(
+            "Falha operacional"
         );
     }
 }
 
 // ==========================================
-// RENDER STATISTICS
+// STATISTICS
 // ==========================================
 
 function renderStatistics(data) {
@@ -1163,35 +1188,6 @@ function renderStatistics(data) {
     }
 
     container.innerHTML = html;
-}
-
-// ==========================================
-// DOWNLOAD
-// ==========================================
-
-function initializeDownloadButton() {
-
-    const button =
-        document.getElementById(
-            "downloadButton"
-        );
-
-    if (!button) {
-
-        return;
-    }
-
-    button.addEventListener(
-        "click",
-
-        function () {
-
-            window.open(
-                "/download-predictions",
-                "_blank"
-            );
-        }
-    );
 }
 
 // ==========================================
@@ -1301,22 +1297,4 @@ function renderHistory(history) {
     });
 
     container.innerHTML = html;
-}
-
-// ==========================================
-// STATUS
-// ==========================================
-
-function showSystemStatus(message) {
-
-    const status =
-        document.querySelector(
-            ".status-live"
-        );
-
-    if (status) {
-
-        status.innerText =
-            `● ${message.toUpperCase()}`;
-    }
 }
