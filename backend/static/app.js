@@ -472,6 +472,37 @@ function renderChart(results) {
 
 function activateAnalyticsButtons() {
 
+    // ==========================================
+    // POPULATE SELECT
+    // ==========================================
+
+    const statisticsSelect =
+        document.getElementById(
+            "statisticsVariable"
+        );
+
+    statisticsSelect.innerHTML = `
+        <option value="">
+            Selecione uma variável
+        </option>
+    `;
+
+    uploadedData.numeric_columns.forEach(col => {
+
+        statisticsSelect.innerHTML += `
+
+            <option value="${col}">
+
+                ${col}
+
+            </option>
+        `;
+    });
+
+    // ==========================================
+    // BUTTON EVENTS
+    // ==========================================
+
     const buttons =
         document.querySelectorAll(
             ".analysis-button"
@@ -479,8 +510,7 @@ function activateAnalyticsButtons() {
 
     buttons.forEach(button => {
 
-        button.addEventListener(
-            "click",
+        button.onclick =
             async function () {
 
                 if (!uploadedData) {
@@ -492,22 +522,17 @@ function activateAnalyticsButtons() {
                     return;
                 }
 
-                const numericColumns =
-                    uploadedData.numeric_columns;
+                const variable =
+                    statisticsSelect.value;
 
-                if (
-                    numericColumns.length === 0
-                ) {
+                if (!variable) {
 
                     alert(
-                        "Nenhuma variável numérica encontrada."
+                        "Selecione uma variável estatística."
                     );
 
                     return;
                 }
-
-                const variable =
-                    numericColumns[0];
 
                 let analysisType =
                     "";
@@ -549,8 +574,7 @@ function activateAnalyticsButtons() {
                     variable,
                     analysisType
                 );
-            }
-        );
+            };
     });
 }
 
