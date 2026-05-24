@@ -135,7 +135,7 @@ function updateSummary(data) {
 }
 
 // ==========================================
-// RENDER MODEL CONFIG
+// MODEL CONFIG
 // ==========================================
 
 function renderModelConfig(data) {
@@ -346,7 +346,7 @@ async function runModel() {
 }
 
 // ==========================================
-// RENDER CHART
+// CHART
 // ==========================================
 
 function renderChart(results) {
@@ -467,14 +467,10 @@ function renderChart(results) {
 }
 
 // ==========================================
-// ACTIVATE ANALYTICS
+// ANALYTICS BUTTONS
 // ==========================================
 
 function activateAnalyticsButtons() {
-
-    // ==========================================
-    // POPULATE SELECT
-    // ==========================================
 
     const statisticsSelect =
         document.getElementById(
@@ -498,10 +494,6 @@ function activateAnalyticsButtons() {
             </option>
         `;
     });
-
-    // ==========================================
-    // BUTTON EVENTS
-    // ==========================================
 
     const buttons =
         document.querySelectorAll(
@@ -540,6 +532,10 @@ function activateAnalyticsButtons() {
                 const buttonText =
                     this.innerText.trim();
 
+                // ==========================================
+                // ROUTER
+                // ==========================================
+
                 if (
                     buttonText.includes(
                         "TENDÊNCIA"
@@ -568,6 +564,16 @@ function activateAnalyticsButtons() {
 
                     analysisType =
                         "position";
+                }
+
+                else if (
+                    buttonText.includes(
+                        "FORMA"
+                    )
+                ) {
+
+                    analysisType =
+                        "shape";
                 }
 
                 await runVariableAnalysis(
@@ -646,38 +652,39 @@ function renderStatistics(data) {
             "statisticsResults"
         );
 
-    let html =
-        `<div class="statistics-grid">`;
+    let html = `
+
+        <div class="statistics-header">
+
+            <div class="statistics-variable">
+
+                VARIÁVEL:
+                ${data.variable}
+
+            </div>
+
+            <div class="statistics-type">
+
+                ANÁLISE:
+                ${data.analysis_type
+                    .replaceAll("_", " ")
+                    .toUpperCase()}
+
+            </div>
+
+        </div>
+
+        <div class="statistics-grid">
+    `;
 
     Object.entries(
         data.results
     ).forEach(([key, value]) => {
 
-        if (
-            typeof value === "object"
-            &&
-            value !== null
-        ) {
-
-            Object.entries(value)
-                .forEach(
-                    ([subKey, subValue]) => {
-
-                        html += createStatCard(
-                            `${key} ${subKey}`,
-                            subValue
-                        );
-                    }
-                );
-        }
-
-        else {
-
-            html += createStatCard(
-                key,
-                value
-            );
-        }
+        html += createStatCard(
+            key,
+            value
+        );
     });
 
     html += `</div>`;
@@ -687,7 +694,7 @@ function renderStatistics(data) {
 }
 
 // ==========================================
-// CREATE STAT CARD
+// CREATE CARD
 // ==========================================
 
 function createStatCard(
