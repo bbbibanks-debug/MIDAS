@@ -126,7 +126,7 @@ SIDEBAR
 
 .logo-title {
 
-    font-size: 44px;
+    font-size: 42px;
 
     font-weight: 900;
 
@@ -137,7 +137,9 @@ SIDEBAR
 
     color: var(--muted);
 
-    margin-top: 4px;
+    margin-top: 6px;
+
+    line-height: 1.5;
 }
 
 /* ==========================================
@@ -259,11 +261,13 @@ TOPBAR
 
 .page-title {
 
-    font-size: 58px;
+    font-size: 54px;
 
     font-weight: 900;
 
     letter-spacing: -3px;
+
+    max-width: 900px;
 }
 
 .topbar-right {
@@ -344,7 +348,7 @@ CARD
 
 .card-header {
 
-    margin-bottom: 20px;
+    margin-bottom: 22px;
 }
 
 .card-header h2 {
@@ -382,12 +386,17 @@ GRID AREAS
 
     grid-column: span 8;
 
-    min-height: 520px;
+    min-height: 540px;
 }
 
 .analytics-card {
 
     grid-column: span 4;
+}
+
+.history-card {
+
+    grid-column: span 12;
 }
 
 /* ==========================================
@@ -521,9 +530,11 @@ UPLOAD
 
 input[type="file"] {
 
+    width: 100%;
+
     margin-bottom: 18px;
 
-    width: 100%;
+    color: white;
 }
 
 /* ==========================================
@@ -606,7 +617,7 @@ select {
     grid-template-columns:
         repeat(2, 1fr);
 
-    gap: 10px;
+    gap: 12px;
 }
 
 .feature-item {
@@ -620,6 +631,12 @@ select {
     border-radius: 12px;
 
     padding: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
 }
 
 /* ==========================================
@@ -628,7 +645,7 @@ CHART
 
 .chart-container {
 
-    height: 420px;
+    height: 440px;
 }
 
 /* ==========================================
@@ -721,57 +738,13 @@ AI ANALYTICS
 
 .insights-container {
 
-    margin-top: 32px;
+    margin-top: 28px;
 
     display: flex;
 
     flex-direction: column;
 
     gap: 18px;
-}
-
-.ai-analytics-header {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 12px;
-}
-
-.ai-pulse {
-
-    width: 12px;
-
-    height: 12px;
-
-    border-radius: 999px;
-
-    background: #39ff14;
-
-    box-shadow:
-        0 0 12px #39ff14;
-
-    animation:
-        aiPulse 1.5s infinite;
-}
-
-@keyframes aiPulse {
-
-    0% {
-
-        opacity: 0.4;
-    }
-
-    50% {
-
-        opacity: 1;
-    }
-
-    100% {
-
-        opacity: 0.4;
-    }
 }
 
 .insight-card {
@@ -862,6 +835,66 @@ AI ANALYTICS
 }
 
 /* ==========================================
+HISTORY
+========================================== */
+
+#analyticsHistory {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 18px;
+}
+
+.history-item {
+
+    background:
+        rgba(255,255,255,0.03);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 18px;
+
+    padding: 20px;
+}
+
+.history-time {
+
+    color: var(--orange);
+
+    font-size: 13px;
+
+    margin-bottom: 10px;
+}
+
+.history-variable {
+
+    font-size: 20px;
+
+    font-weight: 800;
+
+    margin-bottom: 8px;
+}
+
+.history-analysis {
+
+    color: var(--blue);
+
+    font-weight: 700;
+
+    margin-bottom: 12px;
+}
+
+.history-insight {
+
+    color: var(--muted);
+
+    line-height: 1.7;
+}
+
+/* ==========================================
 EMPTY
 ========================================== */
 
@@ -883,7 +916,8 @@ RESPONSIVE
     .upload-card,
     .model-card,
     .chart-card,
-    .analytics-card {
+    .analytics-card,
+    .history-card {
 
         grid-column: span 12;
     }
@@ -912,7 +946,7 @@ RESPONSIVE
 
     .page-title {
 
-        font-size: 42px;
+        font-size: 40px;
     }
 
     .kpi-grid {
@@ -922,6 +956,12 @@ RESPONSIVE
     }
 
     .statistics-grid {
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .features-grid {
 
         grid-template-columns:
             1fr;
