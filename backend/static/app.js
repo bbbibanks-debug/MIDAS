@@ -1,5 +1,5 @@
 // ==========================================
-// MIDAS MASTER FRONTEND ENGINE
+// MIDAS MASTER OPERATIONAL ENGINE
 // ==========================================
 
 let uploadedData = null;
@@ -121,7 +121,7 @@ function calculateEMA(
 }
 
 // ==========================================
-// UPLOAD FILE
+// UPLOAD
 // ==========================================
 
 async function uploadFile() {
@@ -174,11 +174,21 @@ async function uploadFile() {
 
         uploadedData = data;
 
+        // ==========================================
+        // UPDATE UI
+        // ==========================================
+
         updateSummary(data);
 
         renderModelConfig(data);
 
+        populateStatisticsVariable(data);
+
         activateAnalyticsButtons();
+
+        alert(
+            "Dataset carregado com sucesso."
+        );
 
     } catch (error) {
 
@@ -218,6 +228,46 @@ function updateSummary(data) {
 }
 
 // ==========================================
+// POPULATE STATISTICS
+// ==========================================
+
+function populateStatisticsVariable(data) {
+
+    const statisticsSelect =
+        document.getElementById(
+            "statisticsVariable"
+        );
+
+    if (!statisticsSelect) {
+
+        console.error(
+            "statisticsVariable não encontrado."
+        );
+
+        return;
+    }
+
+    statisticsSelect.innerHTML = "";
+
+    statisticsSelect.innerHTML += `
+
+        <option value="">
+            Selecione uma variável
+        </option>
+    `;
+
+    data.numeric_columns.forEach(col => {
+
+        statisticsSelect.innerHTML += `
+
+            <option value="${col}">
+                ${col}
+            </option>
+        `;
+    });
+}
+
+// ==========================================
 // MODEL CONFIG
 // ==========================================
 
@@ -227,6 +277,15 @@ function renderModelConfig(data) {
         document.getElementById(
             "modelConfig"
         );
+
+    if (!container) {
+
+        console.error(
+            "modelConfig não encontrado."
+        );
+
+        return;
+    }
 
     const dateColumns =
         data.possible_time_columns;
@@ -242,6 +301,7 @@ function renderModelConfig(data) {
     dateColumns.forEach(col => {
 
         dateOptions += `
+
             <option value="${col}">
                 ${col}
             </option>
@@ -258,6 +318,7 @@ function renderModelConfig(data) {
             : "";
 
         targetOptions += `
+
             <option
                 value="${col}"
                 ${selected}
@@ -274,6 +335,7 @@ function renderModelConfig(data) {
         if (col !== suggestedTarget) {
 
             featureOptions += `
+
                 <label class="feature-item">
 
                     <input
@@ -350,31 +412,75 @@ function renderModelConfig(data) {
 
 async function runModel() {
 
-    const dateColumn =
-        document.getElementById(
-            "dateColumn"
-        ).value;
-
-    const targetVariable =
-        document.getElementById(
-            "targetVariable"
-        ).value;
-
-    const checkedFeatures =
-        document.querySelectorAll(
-            ".features-grid input:checked"
-        );
-
-    let features = [];
-
-    checkedFeatures.forEach(item => {
-
-        features.push(
-            item.value
-        );
-    });
-
     try {
+
+        const dateColumn =
+            document.getElementById(
+                "dateColumn"
+            )?.value;
+
+        const targetVariable =
+            document.getElementById(
+                "targetVariable"
+            )?.value;
+
+        if (!dateColumn) {
+
+            alert(
+                "Selecione uma coluna temporal."
+            );
+
+            return;
+        }
+
+        if (!targetVariable) {
+
+            alert(
+                "Selecione uma variável alvo."
+            );
+
+            return;
+        }
+
+        const checkedFeatures =
+            document.querySelectorAll(
+                ".features-grid input:checked"
+            );
+
+        let features = [];
+
+        checkedFeatures.forEach(item => {
+
+            if (
+                item.value !== targetVariable
+            ) {
+
+                features.push(
+                    item.value
+                );
+            }
+        });
+
+        if (features.length === 0) {
+
+            alert(
+                "Selecione pelo menos uma variável explicativa."
+            );
+
+            return;
+        }
+
+        const payload = {
+
+            date_column:
+                dateColumn,
+
+            target_variable:
+                targetVariable,
+
+            features:
+                features
+        };
 
         const response =
             await fetch(
@@ -387,17 +493,9 @@ async function runModel() {
                             "application/json"
                     },
 
-                    body: JSON.stringify({
-
-                        date_column:
-                            dateColumn,
-
-                        target_variable:
-                            targetVariable,
-
-                        features:
-                            features
-                    })
+                    body: JSON.stringify(
+                        payload
+                    )
                 }
             );
 
@@ -407,6 +505,17 @@ async function runModel() {
         if (data.error) {
 
             alert(data.error);
+
+            return;
+        }
+
+        if (
+            !data.model_results
+        ) {
+
+            alert(
+                "Resultado do modelo inválido."
+            );
 
             return;
         }
@@ -431,12 +540,35 @@ async function runModel() {
 
 function renderChart(results) {
 
+    if (
+        !results.actual_values
+        ||
+        results.actual_values.length === 0
+    ) {
+
+        alert(
+            "Sem dados suficientes para gerar gráfico."
+        );
+
+        return;
+    }
+
+    const canvas =
+        document.getElementById(
+            "predictionChart"
+        );
+
+    if (!canvas) {
+
+        console.error(
+            "predictionChart não encontrado."
+        );
+
+        return;
+    }
+
     const ctx =
-        document
-            .getElementById(
-                "predictionChart"
-            )
-            .getContext("2d");
+        canvas.getContext("2d");
 
     if (predictionChart) {
 
@@ -445,6 +577,9 @@ function renderChart(results) {
 
     const actual =
         results.actual_values;
+
+    const predicted =
+        results.predicted_values;
 
     const sma =
         calculateSMA(
@@ -491,7 +626,7 @@ function renderChart(results) {
                                 "Predito",
 
                             data:
-                                results.predicted_values,
+                                predicted,
 
                             borderColor:
                                 "#00a3ff",
@@ -511,9 +646,9 @@ function renderChart(results) {
                             borderColor:
                                 "#39ff14",
 
-                            borderDash: [5, 5],
+                            borderWidth: 2,
 
-                            borderWidth: 2
+                            borderDash: [5, 5]
                         },
 
                         {
@@ -535,7 +670,59 @@ function renderChart(results) {
 
                     responsive: true,
 
-                    maintainAspectRatio: false
+                    maintainAspectRatio: false,
+
+                    interaction: {
+
+                        mode: "index",
+
+                        intersect: false
+                    },
+
+                    plugins: {
+
+                        legend: {
+
+                            labels: {
+
+                                color:
+                                    "#ffffff"
+                            }
+                        }
+                    },
+
+                    scales: {
+
+                        x: {
+
+                            ticks: {
+
+                                color:
+                                    "#94a3b8"
+                            },
+
+                            grid: {
+
+                                color:
+                                    "rgba(255,255,255,0.05)"
+                            }
+                        },
+
+                        y: {
+
+                            ticks: {
+
+                                color:
+                                    "#94a3b8"
+                            },
+
+                            grid: {
+
+                                color:
+                                    "rgba(255,255,255,0.05)"
+                            }
+                        }
+                    }
                 }
             }
         );
@@ -547,26 +734,6 @@ function renderChart(results) {
 
 function activateAnalyticsButtons() {
 
-    const statisticsSelect =
-        document.getElementById(
-            "statisticsVariable"
-        );
-
-    statisticsSelect.innerHTML = `
-        <option value="">
-            Selecione uma variável
-        </option>
-    `;
-
-    uploadedData.numeric_columns.forEach(col => {
-
-        statisticsSelect.innerHTML += `
-            <option value="${col}">
-                ${col}
-            </option>
-        `;
-    });
-
     const buttons =
         document.querySelectorAll(
             ".analysis-button"
@@ -577,23 +744,36 @@ function activateAnalyticsButtons() {
         button.onclick =
             async function () {
 
-                const variable =
-                    statisticsSelect.value;
-
-                if (!variable) {
+                if (!uploadedData) {
 
                     alert(
-                        "Selecione uma variável."
+                        "Carregue um dataset primeiro."
                     );
 
                     return;
                 }
 
-                let analysisType =
-                    "";
+                const statisticsSelect =
+                    document.getElementById(
+                        "statisticsVariable"
+                    );
+
+                const variable =
+                    statisticsSelect?.value;
+
+                if (!variable) {
+
+                    alert(
+                        "Selecione uma variável estatística."
+                    );
+
+                    return;
+                }
 
                 const buttonText =
                     this.innerText.trim();
+
+                let analysisType = "";
 
                 if (
                     buttonText.includes(
@@ -645,6 +825,15 @@ function activateAnalyticsButtons() {
                         "temporal";
                 }
 
+                if (!analysisType) {
+
+                    alert(
+                        "Tipo de análise inválido."
+                    );
+
+                    return;
+                }
+
                 await runVariableAnalysis(
                     variable,
                     analysisType
@@ -664,6 +853,15 @@ async function runVariableAnalysis(
 
     try {
 
+        const payload = {
+
+            variable:
+                variable,
+
+            analysis_type:
+                analysisType
+        };
+
         const response =
             await fetch(
                 "/variable-analysis",
@@ -675,14 +873,9 @@ async function runVariableAnalysis(
                             "application/json"
                     },
 
-                    body: JSON.stringify({
-
-                        variable:
-                            variable,
-
-                        analysis_type:
-                            analysisType
-                    })
+                    body: JSON.stringify(
+                        payload
+                    )
                 }
             );
 
@@ -792,6 +985,15 @@ function renderStatistics(data) {
             "statisticsResults"
         );
 
+    if (!container) {
+
+        console.error(
+            "statisticsResults não encontrado."
+        );
+
+        return;
+    }
+
     let html = `
 
         <div class="statistics-grid">
@@ -818,7 +1020,7 @@ function renderStatistics(data) {
 }
 
 // ==========================================
-// CARD
+// CREATE CARD
 // ==========================================
 
 function createStatCard(
