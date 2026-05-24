@@ -1,5 +1,5 @@
 // ==========================================
-// MIDAS MASTER OPERATIONAL ENGINE
+// MIDAS MASTER WORKSPACE ENGINE
 // ==========================================
 
 let uploadedData = null;
@@ -174,10 +174,6 @@ async function uploadFile() {
 
         uploadedData = data;
 
-        // ==========================================
-        // UPDATE UI
-        // ==========================================
-
         updateSummary(data);
 
         renderModelConfig(data);
@@ -185,6 +181,8 @@ async function uploadFile() {
         populateStatisticsVariable(data);
 
         activateAnalyticsButtons();
+
+        loadAnalyticsHistory();
 
         alert(
             "Dataset carregado com sucesso."
@@ -240,16 +238,10 @@ function populateStatisticsVariable(data) {
 
     if (!statisticsSelect) {
 
-        console.error(
-            "statisticsVariable não encontrado."
-        );
-
         return;
     }
 
-    statisticsSelect.innerHTML = "";
-
-    statisticsSelect.innerHTML += `
+    statisticsSelect.innerHTML = `
 
         <option value="">
             Selecione uma variável
@@ -277,15 +269,6 @@ function renderModelConfig(data) {
         document.getElementById(
             "modelConfig"
         );
-
-    if (!container) {
-
-        console.error(
-            "modelConfig não encontrado."
-        );
-
-        return;
-    }
 
     const dateColumns =
         data.possible_time_columns;
@@ -424,24 +407,6 @@ async function runModel() {
                 "targetVariable"
             )?.value;
 
-        if (!dateColumn) {
-
-            alert(
-                "Selecione uma coluna temporal."
-            );
-
-            return;
-        }
-
-        if (!targetVariable) {
-
-            alert(
-                "Selecione uma variável alvo."
-            );
-
-            return;
-        }
-
         const checkedFeatures =
             document.querySelectorAll(
                 ".features-grid input:checked"
@@ -470,18 +435,6 @@ async function runModel() {
             return;
         }
 
-        const payload = {
-
-            date_column:
-                dateColumn,
-
-            target_variable:
-                targetVariable,
-
-            features:
-                features
-        };
-
         const response =
             await fetch(
                 "/run-model",
@@ -493,9 +446,17 @@ async function runModel() {
                             "application/json"
                     },
 
-                    body: JSON.stringify(
-                        payload
-                    )
+                    body: JSON.stringify({
+
+                        date_column:
+                            dateColumn,
+
+                        target_variable:
+                            targetVariable,
+
+                        features:
+                            features
+                    })
                 }
             );
 
@@ -505,17 +466,6 @@ async function runModel() {
         if (data.error) {
 
             alert(data.error);
-
-            return;
-        }
-
-        if (
-            !data.model_results
-        ) {
-
-            alert(
-                "Resultado do modelo inválido."
-            );
 
             return;
         }
@@ -540,29 +490,12 @@ async function runModel() {
 
 function renderChart(results) {
 
-    if (
-        !results.actual_values
-        ||
-        results.actual_values.length === 0
-    ) {
-
-        alert(
-            "Sem dados suficientes para gerar gráfico."
-        );
-
-        return;
-    }
-
     const canvas =
         document.getElementById(
             "predictionChart"
         );
 
     if (!canvas) {
-
-        console.error(
-            "predictionChart não encontrado."
-        );
 
         return;
     }
@@ -577,9 +510,6 @@ function renderChart(results) {
 
     const actual =
         results.actual_values;
-
-    const predicted =
-        results.predicted_values;
 
     const sma =
         calculateSMA(
@@ -626,7 +556,7 @@ function renderChart(results) {
                                 "Predito",
 
                             data:
-                                predicted,
+                                results.predicted_values,
 
                             borderColor:
                                 "#00a3ff",
@@ -646,9 +576,9 @@ function renderChart(results) {
                             borderColor:
                                 "#39ff14",
 
-                            borderWidth: 2,
+                            borderDash: [5, 5],
 
-                            borderDash: [5, 5]
+                            borderWidth: 2
                         },
 
                         {
@@ -670,59 +600,7 @@ function renderChart(results) {
 
                     responsive: true,
 
-                    maintainAspectRatio: false,
-
-                    interaction: {
-
-                        mode: "index",
-
-                        intersect: false
-                    },
-
-                    plugins: {
-
-                        legend: {
-
-                            labels: {
-
-                                color:
-                                    "#ffffff"
-                            }
-                        }
-                    },
-
-                    scales: {
-
-                        x: {
-
-                            ticks: {
-
-                                color:
-                                    "#94a3b8"
-                            },
-
-                            grid: {
-
-                                color:
-                                    "rgba(255,255,255,0.05)"
-                            }
-                        },
-
-                        y: {
-
-                            ticks: {
-
-                                color:
-                                    "#94a3b8"
-                            },
-
-                            grid: {
-
-                                color:
-                                    "rgba(255,255,255,0.05)"
-                            }
-                        }
-                    }
+                    maintainAspectRatio: false
                 }
             }
         );
@@ -744,15 +622,6 @@ function activateAnalyticsButtons() {
         button.onclick =
             async function () {
 
-                if (!uploadedData) {
-
-                    alert(
-                        "Carregue um dataset primeiro."
-                    );
-
-                    return;
-                }
-
                 const statisticsSelect =
                     document.getElementById(
                         "statisticsVariable"
@@ -764,7 +633,7 @@ function activateAnalyticsButtons() {
                 if (!variable) {
 
                     alert(
-                        "Selecione uma variável estatística."
+                        "Selecione uma variável."
                     );
 
                     return;
@@ -825,15 +694,6 @@ function activateAnalyticsButtons() {
                         "temporal";
                 }
 
-                if (!analysisType) {
-
-                    alert(
-                        "Tipo de análise inválido."
-                    );
-
-                    return;
-                }
-
                 await runVariableAnalysis(
                     variable,
                     analysisType
@@ -853,15 +713,6 @@ async function runVariableAnalysis(
 
     try {
 
-        const payload = {
-
-            variable:
-                variable,
-
-            analysis_type:
-                analysisType
-        };
-
         const response =
             await fetch(
                 "/variable-analysis",
@@ -873,9 +724,14 @@ async function runVariableAnalysis(
                             "application/json"
                     },
 
-                    body: JSON.stringify(
-                        payload
-                    )
+                    body: JSON.stringify({
+
+                        variable:
+                            variable,
+
+                        analysis_type:
+                            analysisType
+                    })
                 }
             );
 
@@ -892,6 +748,8 @@ async function runVariableAnalysis(
         renderStatistics(
             data
         );
+
+        loadAnalyticsHistory();
 
     } catch (error) {
 
@@ -985,15 +843,6 @@ function renderStatistics(data) {
             "statisticsResults"
         );
 
-    if (!container) {
-
-        console.error(
-            "statisticsResults não encontrado."
-        );
-
-        return;
-    }
-
     let html = `
 
         <div class="statistics-grid">
@@ -1020,7 +869,116 @@ function renderStatistics(data) {
 }
 
 // ==========================================
-// CREATE CARD
+// HISTORY
+// ==========================================
+
+async function loadAnalyticsHistory() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/analytics-history"
+            );
+
+        const data =
+            await response.json();
+
+        renderAnalyticsHistory(
+            data.history
+        );
+
+    } catch (error) {
+
+        console.error(error);
+    }
+}
+
+// ==========================================
+// RENDER HISTORY
+// ==========================================
+
+function renderAnalyticsHistory(history) {
+
+    const container =
+        document.getElementById(
+            "analyticsHistory"
+        );
+
+    if (
+        !history
+        ||
+        history.length === 0
+    ) {
+
+        container.innerHTML = `
+
+            <div class="empty-state">
+
+                Nenhuma análise registrada.
+
+            </div>
+        `;
+
+        return;
+    }
+
+    let html = "";
+
+    history.forEach(item => {
+
+        let firstInsight = "";
+
+        if (
+            item.insights
+            &&
+            item.insights.length > 0
+        ) {
+
+            firstInsight =
+                item.insights[0].message;
+        }
+
+        html += `
+
+            <div class="history-item">
+
+                <div class="history-time">
+
+                    ${item.timestamp}
+
+                </div>
+
+                <div class="history-variable">
+
+                    ${item.variable}
+
+                </div>
+
+                <div class="history-analysis">
+
+                    ${item.analysis_type
+                        .replaceAll("_", " ")
+                        .toUpperCase()}
+
+                </div>
+
+                <div class="history-insight">
+
+                    ${firstInsight}
+
+                </div>
+
+            </div>
+        `;
+    });
+
+    container.innerHTML =
+        html;
+}
+
+// ==========================================
+// CARD
 // ==========================================
 
 function createStatCard(
@@ -1049,3 +1007,12 @@ function createStatCard(
         </div>
     `;
 }
+
+// ==========================================
+// INITIAL LOAD
+// ==========================================
+
+window.onload = function () {
+
+    loadAnalyticsHistory();
+};
