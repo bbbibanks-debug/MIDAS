@@ -10,7 +10,9 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>MIDAS</title>
+    <title>
+        MIDAS Terminal
+    </title>
 
     <link
         rel="stylesheet"
@@ -23,89 +25,83 @@
 
 <body>
 
-    <div class="dashboard-layout">
+    <!-- ========================================== -->
+    <!-- TERMINAL -->
+    <!-- ========================================== -->
+
+    <div class="terminal-layout">
 
         <!-- ========================================== -->
         <!-- SIDEBAR -->
         <!-- ========================================== -->
 
-        <aside class="sidebar">
+        <aside class="terminal-sidebar">
 
-            <div>
+            <!-- LOGO -->
 
-                <!-- LOGO -->
+            <div class="terminal-logo">
 
-                <div class="logo-area">
+                <div class="logo-main">
+                    MIDAS
+                </div>
 
-                    <div class="logo-icon">
-                        📊
-                    </div>
+                <div class="logo-sub">
 
-                    <div>
-
-                        <h1 class="logo-title">
-                            MIDAS
-                        </h1>
-
-                        <p class="logo-subtitle">
-                            Quantitative Research Terminal
-                        </p>
-
-                    </div>
+                    Mixed-Frequency
+                    Intelligent
+                    Data Analysis System
 
                 </div>
 
-                <!-- NAVIGATION -->
+            </div>
 
-                <div class="menu-section">
+            <!-- NAV -->
 
-                    <div class="menu-title">
+            <div class="terminal-nav">
+
+                <div class="nav-section">
+
+                    <div class="nav-title">
                         WORKSPACE
                     </div>
 
-                    <button class="menu-item active">
+                    <button class="nav-item active">
                         Dashboard
                     </button>
 
-                    <button class="menu-item">
+                    <button class="nav-item">
                         Econometrics
                     </button>
 
-                    <button class="menu-item">
-                        Statistical Analytics
+                    <button class="nav-item">
+                        Forecasting
                     </button>
 
-                    <button class="menu-item">
+                    <button class="nav-item">
+                        Quant Analytics
+                    </button>
+
+                    <button class="nav-item">
                         Temporal Analysis
-                    </button>
-
-                    <button class="menu-item">
-                        AI Analytics
                     </button>
 
                 </div>
 
-                <!-- TOOLS -->
+                <div class="nav-section">
 
-                <div class="menu-section">
-
-                    <div class="menu-title">
-                        TOOLS
+                    <div class="nav-title">
+                        RESEARCH
                     </div>
 
-                    <button class="menu-item">
-                        Forecasting
+                    <button class="nav-item">
+                        Models
                     </button>
 
-                    <button class="menu-item">
-                        Volatility
+                    <button class="nav-item">
+                        Diagnostics
                     </button>
 
-                    <button class="menu-item">
-                        Correlation
-                    </button>
-
-                    <button class="menu-item">
+                    <button class="nav-item">
                         Reports
                     </button>
 
@@ -113,21 +109,25 @@
 
             </div>
 
-            <!-- SYSTEM -->
+            <!-- STATUS -->
 
-            <div class="system-card">
+            <div class="terminal-system">
 
-                <h3>
-                    SISTEMA
-                </h3>
-
-                <div class="system-status">
-                    ● ONLINE
+                <div class="system-title">
+                    ENGINE STATUS
                 </div>
 
-                <p>
-                    Ambiente operacional ativo
-                </p>
+                <div class="system-live">
+
+                    ● OPERATIONAL
+
+                </div>
+
+                <div class="system-description">
+
+                    MIDAS Quantitative Engine
+
+                </div>
 
             </div>
 
@@ -137,237 +137,129 @@
         <!-- MAIN -->
         <!-- ========================================== -->
 
-        <main class="main-content">
+        <main class="terminal-main">
 
-            <!-- TOPBAR -->
+            <!-- ========================================== -->
+            <!-- RIBBON -->
+            <!-- ========================================== -->
 
-            <header class="topbar">
+            <section class="terminal-ribbon">
 
-                <div>
+                <div class="ribbon-box">
 
-                    <h1 class="page-title">
+                    <div class="ribbon-label">
+                        OBSERVAÇÕES
+                    </div>
 
-                        Mixed-Frequency Intelligent Data Analysis System
-
-                    </h1>
+                    <div
+                        class="ribbon-value"
+                        id="summaryRows"
+                    >
+                        -
+                    </div>
 
                 </div>
 
-                <div class="topbar-right">
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        COLUNAS
+                    </div>
+
+                    <div
+                        class="ribbon-value"
+                        id="summaryColumns"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        NUMÉRICAS
+                    </div>
+
+                    <div
+                        class="ribbon-value"
+                        id="summaryNumeric"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        TEMPORAIS
+                    </div>
+
+                    <div
+                        class="ribbon-value"
+                        id="summaryDatetime"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box">
+
+                    <div class="ribbon-label">
+                        ENGINE
+                    </div>
+
+                    <div class="ribbon-status">
+
+                        ● ACTIVE
+
+                    </div>
+
+                </div>
+
+                <div class="ribbon-box status-box">
+
+                    <div class="ribbon-label">
+                        STATUS
+                    </div>
 
                     <div class="status-live">
-                        ● ANALYTICS ENGINE ACTIVE
-                    </div>
 
-                    <div class="datetime-box">
-                        MIDAS WORKSPACE
+                        ● READY
+
                     </div>
 
                 </div>
 
-            </header>
+            </section>
 
             <!-- ========================================== -->
             <!-- GRID -->
             <!-- ========================================== -->
 
-            <div class="dashboard-grid">
-
-                <!-- ========================================== -->
-                <!-- NEWS -->
-                <!-- ========================================== -->
-
-                <section class="card news-card">
-
-                    <div class="card-header">
-
-                        <h2>
-                            MARKET & SYSTEM
-                        </h2>
-
-                    </div>
-
-                    <div class="news-list">
-
-                        <div class="news-item">
-
-                            <span class="news-time">
-                                LIVE
-                            </span>
-
-                            <div>
-
-                                <div class="news-title">
-                                    MIDAS Core Rebuild
-                                </div>
-
-                                <div class="news-description">
-                                    Frontend sincronizado e operacional.
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-                <!-- ========================================== -->
-                <!-- KPI -->
-                <!-- ========================================== -->
-
-                <section class="card kpi-card">
-
-                    <div class="kpi-grid">
-
-                        <div class="kpi-item">
-
-                            <div class="kpi-label">
-                                OBSERVAÇÕES
-                            </div>
-
-                            <div
-                                class="kpi-value"
-                                id="summaryRows"
-                            >
-                                -
-                            </div>
-
-                        </div>
-
-                        <div class="kpi-item">
-
-                            <div class="kpi-label">
-                                COLUNAS
-                            </div>
-
-                            <div
-                                class="kpi-value"
-                                id="summaryColumns"
-                            >
-                                -
-                            </div>
-
-                        </div>
-
-                        <div class="kpi-item">
-
-                            <div class="kpi-label">
-                                VARIÁVEIS NUMÉRICAS
-                            </div>
-
-                            <div
-                                class="kpi-value"
-                                id="summaryNumeric"
-                            >
-                                -
-                            </div>
-
-                        </div>
-
-                        <div class="kpi-item">
-
-                            <div class="kpi-label">
-                                VARIÁVEIS TEMPORAIS
-                            </div>
-
-                            <div
-                                class="kpi-value"
-                                id="summaryDatetime"
-                            >
-                                -
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-                <!-- ========================================== -->
-                <!-- UPLOAD -->
-                <!-- ========================================== -->
-
-                <section class="card upload-card">
-
-                    <div class="card-header">
-
-                        <h2>
-                            DATA UPLOAD
-                        </h2>
-
-                    </div>
-
-                    <div class="upload-zone">
-
-                        <div class="upload-icon">
-                            ☁
-                        </div>
-
-                        <p>
-                            Upload Excel Dataset
-                        </p>
-
-                        <span>
-                            XLSX / XLS
-                        </span>
-
-                    </div>
-
-                    <input
-                        type="file"
-                        id="fileInput"
-                    >
-
-                    <button
-                        id="uploadButton"
-                        class="primary-button"
-                    >
-
-                        ANALISAR DATASET
-
-                    </button>
-
-                </section>
-
-                <!-- ========================================== -->
-                <!-- MODEL -->
-                <!-- ========================================== -->
-
-                <section class="card model-card">
-
-                    <div class="card-header">
-
-                        <h2>
-                            ECONOMETRIC MODEL
-                        </h2>
-
-                    </div>
-
-                    <div id="modelConfig">
-
-                        <div class="empty-state">
-
-                            Carregue um dataset para habilitar o modelo.
-
-                        </div>
-
-                    </div>
-
-                </section>
+            <div class="terminal-grid">
 
                 <!-- ========================================== -->
                 <!-- CHART -->
                 <!-- ========================================== -->
 
-                <section class="card chart-card">
+                <section class="terminal-panel chart-panel">
 
-                    <div class="card-header">
+                    <div class="panel-header">
 
-                        <h2>
+                        <div class="panel-title">
+
                             TEMPORAL ANALYTICS
-                        </h2>
+
+                        </div>
+
+                        <div class="panel-subtitle">
+
+                            Quantitative Time-Series Workspace
+
+                        </div>
 
                     </div>
 
@@ -380,26 +272,50 @@
                 </section>
 
                 <!-- ========================================== -->
-                <!-- STATISTICS -->
+                <!-- RIGHT PANEL -->
                 <!-- ========================================== -->
 
-                <section class="card analytics-card">
+                <section class="terminal-panel analytics-panel">
 
-                    <div class="card-header">
+                    <!-- ========================================== -->
+                    <!-- UPLOAD -->
+                    <!-- ========================================== -->
 
-                        <h2>
-                            STATISTICAL ANALYTICS
-                        </h2>
+                    <div class="analytics-section">
+
+                        <div class="analytics-title">
+
+                            DATASET ENGINE
+
+                        </div>
+
+                        <input
+                            type="file"
+                            id="fileInput"
+                        >
+
+                        <button
+                            id="uploadButton"
+                            class="terminal-button"
+                        >
+
+                            ANALISAR DATASET
+
+                        </button>
 
                     </div>
 
-                    <!-- VARIABLE -->
+                    <!-- ========================================== -->
+                    <!-- STATISTICS -->
+                    <!-- ========================================== -->
 
-                    <div class="config-group">
+                    <div class="analytics-section">
 
-                        <label>
-                            Variável Estatística
-                        </label>
+                        <div class="analytics-title">
+
+                            STATISTICAL ANALYTICS
+
+                        </div>
 
                         <select id="statisticsVariable">
 
@@ -409,62 +325,65 @@
 
                         </select>
 
-                    </div>
+                        <div class="analysis-grid">
 
-                    <!-- BUTTONS -->
+                            <button
+                                class="analysis-button"
+                                data-analysis="central_tendency"
+                            >
 
-                    <div class="analysis-group">
+                                CENTRAL
 
-                        <button
-                            class="analysis-button"
-                            data-analysis="central_tendency"
-                        >
+                            </button>
 
-                            TENDÊNCIA CENTRAL
+                            <button
+                                class="analysis-button"
+                                data-analysis="dispersion"
+                            >
 
-                        </button>
+                                DISPERSION
 
-                        <button
-                            class="analysis-button"
-                            data-analysis="dispersion"
-                        >
+                            </button>
 
-                            DISPERSÃO
+                            <button
+                                class="analysis-button"
+                                data-analysis="position"
+                            >
 
-                        </button>
+                                POSITION
 
-                        <button
-                            class="analysis-button"
-                            data-analysis="position"
-                        >
+                            </button>
 
-                            POSIÇÃO
+                            <button
+                                class="analysis-button"
+                                data-analysis="shape"
+                            >
 
-                        </button>
+                                SHAPE
 
-                        <button
-                            class="analysis-button"
-                            data-analysis="shape"
-                        >
+                            </button>
 
-                            FORMA & CONCENTRAÇÃO
+                            <button
+                                class="analysis-button"
+                                data-analysis="temporal"
+                            >
 
-                        </button>
+                                TEMPORAL
 
-                        <button
-                            class="analysis-button"
-                            data-analysis="temporal"
-                        >
+                            </button>
 
-                            TEMPORAL & VOLATILIDADE
-
-                        </button>
+                        </div>
 
                     </div>
 
+                    <!-- ========================================== -->
                     <!-- RESULTS -->
+                    <!-- ========================================== -->
 
-                    <div id="statisticsResults">
+                    <div
+                        id="statisticsResults"
+                        class="analytics-results"
+                    >
 
                         <div class="empty-state">
 
@@ -477,16 +396,58 @@
                 </section>
 
                 <!-- ========================================== -->
+                <!-- MODEL -->
+                <!-- ========================================== -->
+
+                <section class="terminal-panel model-panel">
+
+                    <div class="panel-header">
+
+                        <div class="panel-title">
+
+                            ECONOMETRIC WORKSPACE
+
+                        </div>
+
+                        <div class="panel-subtitle">
+
+                            Regression & Mixed-Frequency Modeling
+
+                        </div>
+
+                    </div>
+
+                    <div id="modelConfig">
+
+                        <div class="empty-state">
+
+                            Carregue um dataset.
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- ========================================== -->
                 <!-- HISTORY -->
                 <!-- ========================================== -->
 
-                <section class="card history-card">
+                <section class="terminal-panel history-panel">
 
-                    <div class="card-header">
+                    <div class="panel-header">
 
-                        <h2>
+                        <div class="panel-title">
+
                             ANALYTICS HISTORY
-                        </h2>
+
+                        </div>
+
+                        <div class="panel-subtitle">
+
+                            Quantitative Research Timeline
+
+                        </div>
 
                     </div>
 
