@@ -1,7 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.encoders import jsonable_encoder
 
 from pydantic import BaseModel
 
@@ -44,6 +43,39 @@ import re
 app = FastAPI()
 
 # ==========================================
+# BASE PATHS
+# ==========================================
+
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+STATIC_DIR = os.path.join(
+    BASE_DIR,
+    "static"
+)
+
+UPLOAD_FOLDER = os.path.join(
+    BASE_DIR,
+    "uploads"
+)
+
+os.makedirs(
+    UPLOAD_FOLDER,
+    exist_ok=True
+)
+
+# ==========================================
+# STATIC FILES
+# ==========================================
+
+app.mount(
+    "/static",
+    StaticFiles(directory=STATIC_DIR),
+    name="static"
+)
+
+# ==========================================
 # GLOBALS
 # ==========================================
 
@@ -70,27 +102,6 @@ class VariableAnalysisRequest(BaseModel):
     analysis_type: str
 
 # ==========================================
-# UPLOAD FOLDER
-# ==========================================
-
-UPLOAD_FOLDER = "uploads"
-
-os.makedirs(
-    UPLOAD_FOLDER,
-    exist_ok=True
-)
-
-# ==========================================
-# STATIC
-# ==========================================
-
-app.mount(
-    "/static",
-    StaticFiles(directory="static"),
-    name="static"
-)
-
-# ==========================================
 # HOME
 # ==========================================
 
@@ -98,7 +109,10 @@ app.mount(
 async def home():
 
     return FileResponse(
-        "static/index.html"
+        os.path.join(
+            STATIC_DIR,
+            "index.html"
+        )
     )
 
 # ==========================================
@@ -341,9 +355,7 @@ async def variable_analysis(
 
         variable = request.variable
 
-        analysis_type = (
-            request.analysis_type
-        )
+        analysis_type = request.analysis_type
 
         if variable not in uploaded_df.columns:
 
@@ -429,17 +441,11 @@ async def run_model(
 
         df = uploaded_df.copy()
 
-        target_variable = (
-            request.target_variable
-        )
+        target_variable = request.target_variable
 
-        features = (
-            request.features
-        )
+        features = request.features
 
-        date_column = (
-            request.date_column
-        )
+        date_column = request.date_column
 
         model_df = df[
             [date_column] +
