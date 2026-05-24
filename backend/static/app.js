@@ -1,5 +1,5 @@
 // ==========================================
-// MIDAS MASTER WORKSPACE ENGINE
+// MIDAS STABLE OPERATIONAL ENGINE
 // ==========================================
 
 let uploadedData = null;
@@ -37,18 +37,11 @@ function formatNumber(value) {
 // SMA
 // ==========================================
 
-function calculateSMA(
-    values,
-    period = 5
-) {
+function calculateSMA(values, period = 5) {
 
     let sma = [];
 
-    for (
-        let i = 0;
-        i < values.length;
-        i++
-    ) {
+    for (let i = 0; i < values.length; i++) {
 
         if (i < period - 1) {
 
@@ -57,13 +50,13 @@ function calculateSMA(
             continue;
         }
 
-        let subset =
+        const subset =
             values.slice(
                 i - period + 1,
                 i + 1
             );
 
-        let avg =
+        const avg =
             subset.reduce(
                 (a, b) => a + b,
                 0
@@ -79,10 +72,7 @@ function calculateSMA(
 // EMA
 // ==========================================
 
-function calculateEMA(
-    values,
-    period = 5
-) {
+function calculateEMA(values, period = 5) {
 
     let ema = [];
 
@@ -94,11 +84,7 @@ function calculateEMA(
 
     ema.push(previousEMA);
 
-    for (
-        let i = 1;
-        i < values.length;
-        i++
-    ) {
+    for (let i = 1; i < values.length; i++) {
 
         let currentEMA = (
 
@@ -113,8 +99,7 @@ function calculateEMA(
 
         ema.push(currentEMA);
 
-        previousEMA =
-            currentEMA;
+        previousEMA = currentEMA;
     }
 
     return ema;
@@ -131,10 +116,11 @@ async function uploadFile() {
             "fileInput"
         );
 
-    const file =
-        fileInput.files[0];
-
-    if (!file) {
+    if (
+        !fileInput
+        ||
+        !fileInput.files[0]
+    ) {
 
         alert(
             "Selecione uma planilha."
@@ -148,7 +134,7 @@ async function uploadFile() {
 
     formData.append(
         "file",
-        file
+        fileInput.files[0]
     );
 
     try {
@@ -193,7 +179,7 @@ async function uploadFile() {
         console.error(error);
 
         alert(
-            "Erro ao carregar planilha."
+            "Erro ao carregar dataset."
         );
     }
 }
@@ -204,59 +190,49 @@ async function uploadFile() {
 
 function updateSummary(data) {
 
-    document.getElementById(
-        "summaryRows"
-    ).innerText =
-        data.dataset_info.rows;
-
-    document.getElementById(
-        "summaryColumns"
-    ).innerText =
-        data.dataset_info.columns;
-
-    document.getElementById(
-        "summaryNumeric"
-    ).innerText =
-        data.numeric_columns.length;
-
-    document.getElementById(
-        "summaryDatetime"
-    ).innerText =
-        data.possible_time_columns.length;
-}
-
-// ==========================================
-// POPULATE STATISTICS
-// ==========================================
-
-function populateStatisticsVariable(data) {
-
-    const statisticsSelect =
+    const rows =
         document.getElementById(
-            "statisticsVariable"
+            "summaryRows"
         );
 
-    if (!statisticsSelect) {
+    const cols =
+        document.getElementById(
+            "summaryColumns"
+        );
 
-        return;
+    const numeric =
+        document.getElementById(
+            "summaryNumeric"
+        );
+
+    const temporal =
+        document.getElementById(
+            "summaryDatetime"
+        );
+
+    if (rows) {
+
+        rows.innerText =
+            data.dataset_info.rows;
     }
 
-    statisticsSelect.innerHTML = `
+    if (cols) {
 
-        <option value="">
-            Selecione uma variável
-        </option>
-    `;
+        cols.innerText =
+            data.dataset_info.columns;
+    }
 
-    data.numeric_columns.forEach(col => {
+    if (numeric) {
 
-        statisticsSelect.innerHTML += `
+        numeric.innerText =
+            data.numeric_columns.length;
+    }
 
-            <option value="${col}">
-                ${col}
-            </option>
-        `;
-    });
+    if (temporal) {
+
+        temporal.innerText =
+            data.possible_time_columns.length;
+    }
 }
 
 // ==========================================
@@ -270,52 +246,74 @@ function renderModelConfig(data) {
             "modelConfig"
         );
 
-    const dateColumns =
-        data.possible_time_columns;
+    if (!container) {
+
+        return;
+    }
 
     const numericColumns =
-        data.numeric_columns;
+        data.numeric_columns || [];
 
-    const suggestedTarget =
-        data.suggestions.target_variable;
+    const timeColumns =
+        data.possible_time_columns || [];
 
-    let dateOptions = "";
+    // ==========================================
+    // FALLBACK
+    // ==========================================
 
-    dateColumns.forEach(col => {
+    let temporalOptions = "";
 
-        dateOptions += `
+    if (timeColumns.length === 0) {
 
-            <option value="${col}">
-                ${col}
+        temporalOptions = `
+
+            <option value="index">
+                Índice Temporal
             </option>
         `;
-    });
+    }
+
+    else {
+
+        timeColumns.forEach(col => {
+
+            temporalOptions += `
+
+                <option value="${col}">
+                    ${col}
+                </option>
+            `;
+        });
+    }
+
+    // ==========================================
+    // TARGET
+    // ==========================================
 
     let targetOptions = "";
 
-    numericColumns.forEach(col => {
-
-        const selected =
-            col === suggestedTarget
-            ? "selected"
-            : "";
+    numericColumns.forEach((col, index) => {
 
         targetOptions += `
 
             <option
                 value="${col}"
-                ${selected}
+                ${index === 0 ? "selected" : ""}
             >
                 ${col}
             </option>
         `;
     });
 
+    // ==========================================
+    // FEATURES
+    // ==========================================
+
     let featureOptions = "";
 
-    numericColumns.forEach(col => {
+    numericColumns.forEach((col, index) => {
 
-        if (col !== suggestedTarget) {
+        if (index > 0) {
 
             featureOptions += `
 
@@ -344,7 +342,7 @@ function renderModelConfig(data) {
 
             <select id="dateColumn">
 
-                ${dateOptions}
+                ${temporalOptions}
 
             </select>
 
@@ -379,14 +377,78 @@ function renderModelConfig(data) {
         </div>
 
         <button
+            id="runModelButton"
             class="primary-button"
-            onclick="runModel()"
         >
 
             EXECUTAR MODELO
 
         </button>
     `;
+
+    // ==========================================
+    // BUTTON EVENT
+    // ==========================================
+
+    const runButton =
+        document.getElementById(
+            "runModelButton"
+        );
+
+    if (runButton) {
+
+        runButton.addEventListener(
+            "click",
+            runModel
+        );
+    }
+}
+
+// ==========================================
+// STATISTICS VARIABLE
+// ==========================================
+
+function populateStatisticsVariable(data) {
+
+    const select =
+        document.getElementById(
+            "statisticsVariable"
+        );
+
+    if (!select) {
+
+        return;
+    }
+
+    select.innerHTML = "";
+
+    const defaultOption =
+        document.createElement(
+            "option"
+        );
+
+    defaultOption.value = "";
+
+    defaultOption.textContent =
+        "Selecione uma variável";
+
+    select.appendChild(
+        defaultOption
+    );
+
+    data.numeric_columns.forEach(col => {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value = col;
+
+        option.textContent = col;
+
+        select.appendChild(option);
+    });
 }
 
 // ==========================================
@@ -397,15 +459,24 @@ async function runModel() {
 
     try {
 
+        const targetVariable =
+            document.getElementById(
+                "targetVariable"
+            )?.value;
+
         const dateColumn =
             document.getElementById(
                 "dateColumn"
             )?.value;
 
-        const targetVariable =
-            document.getElementById(
-                "targetVariable"
-            )?.value;
+        if (!targetVariable) {
+
+            alert(
+                "Selecione uma variável alvo."
+            );
+
+            return;
+        }
 
         const checkedFeatures =
             document.querySelectorAll(
@@ -416,24 +487,52 @@ async function runModel() {
 
         checkedFeatures.forEach(item => {
 
-            if (
-                item.value !== targetVariable
-            ) {
+            features.push(
+                item.value
+            );
+        });
+
+        // ==========================================
+        // FALLBACK
+        // ==========================================
+
+        if (features.length === 0) {
+
+            const available =
+                uploadedData.numeric_columns
+                .filter(
+                    col =>
+                    col !== targetVariable
+                );
+
+            if (available.length > 0) {
 
                 features.push(
-                    item.value
+                    available[0]
                 );
             }
-        });
+        }
 
         if (features.length === 0) {
 
             alert(
-                "Selecione pelo menos uma variável explicativa."
+                "Dataset precisa de pelo menos duas variáveis numéricas."
             );
 
             return;
         }
+
+        const payload = {
+
+            date_column:
+                dateColumn || "index",
+
+            target_variable:
+                targetVariable,
+
+            features:
+                features
+        };
 
         const response =
             await fetch(
@@ -446,17 +545,9 @@ async function runModel() {
                             "application/json"
                     },
 
-                    body: JSON.stringify({
-
-                        date_column:
-                            dateColumn,
-
-                        target_variable:
-                            targetVariable,
-
-                        features:
-                            features
-                    })
+                    body: JSON.stringify(
+                        payload
+                    )
                 }
             );
 
@@ -490,6 +581,15 @@ async function runModel() {
 
 function renderChart(results) {
 
+    if (
+        !results
+        ||
+        !results.actual_values
+    ) {
+
+        return;
+    }
+
     const canvas =
         document.getElementById(
             "predictionChart"
@@ -511,17 +611,14 @@ function renderChart(results) {
     const actual =
         results.actual_values;
 
+    const predicted =
+        results.predicted_values;
+
     const sma =
-        calculateSMA(
-            actual,
-            5
-        );
+        calculateSMA(actual);
 
     const ema =
-        calculateEMA(
-            actual,
-            5
-        );
+        calculateEMA(actual);
 
     predictionChart =
         new Chart(
@@ -546,9 +643,7 @@ function renderChart(results) {
                             borderColor:
                                 "#ff6b00",
 
-                            borderWidth: 3,
-
-                            tension: 0.3
+                            borderWidth: 3
                         },
 
                         {
@@ -556,19 +651,17 @@ function renderChart(results) {
                                 "Predito",
 
                             data:
-                                results.predicted_values,
+                                predicted,
 
                             borderColor:
                                 "#00a3ff",
 
-                            borderWidth: 3,
-
-                            tension: 0.3
+                            borderWidth: 3
                         },
 
                         {
                             label:
-                                "SMA (5)",
+                                "SMA",
 
                             data:
                                 sma,
@@ -576,14 +669,14 @@ function renderChart(results) {
                             borderColor:
                                 "#39ff14",
 
-                            borderDash: [5, 5],
+                            borderWidth: 2,
 
-                            borderWidth: 2
+                            borderDash: [5, 5]
                         },
 
                         {
                             label:
-                                "EMA (5)",
+                                "EMA",
 
                             data:
                                 ema,
@@ -619,16 +712,23 @@ function activateAnalyticsButtons() {
 
     buttons.forEach(button => {
 
-        button.onclick =
+        button.addEventListener(
+            "click",
+
             async function () {
 
-                const statisticsSelect =
+                const select =
                     document.getElementById(
                         "statisticsVariable"
                     );
 
+                if (!select) {
+
+                    return;
+                }
+
                 const variable =
-                    statisticsSelect?.value;
+                    select.value;
 
                 if (!variable) {
 
@@ -639,13 +739,13 @@ function activateAnalyticsButtons() {
                     return;
                 }
 
-                const buttonText =
-                    this.innerText.trim();
-
                 let analysisType = "";
 
+                const text =
+                    this.innerText;
+
                 if (
-                    buttonText.includes(
+                    text.includes(
                         "TENDÊNCIA"
                     )
                 ) {
@@ -655,7 +755,7 @@ function activateAnalyticsButtons() {
                 }
 
                 else if (
-                    buttonText.includes(
+                    text.includes(
                         "DISPERSÃO"
                     )
                 ) {
@@ -665,7 +765,7 @@ function activateAnalyticsButtons() {
                 }
 
                 else if (
-                    buttonText.includes(
+                    text.includes(
                         "POSIÇÃO"
                     )
                 ) {
@@ -675,7 +775,7 @@ function activateAnalyticsButtons() {
                 }
 
                 else if (
-                    buttonText.includes(
+                    text.includes(
                         "FORMA"
                     )
                 ) {
@@ -685,7 +785,7 @@ function activateAnalyticsButtons() {
                 }
 
                 else if (
-                    buttonText.includes(
+                    text.includes(
                         "TEMPORAL"
                     )
                 ) {
@@ -698,7 +798,8 @@ function activateAnalyticsButtons() {
                     variable,
                     analysisType
                 );
-            };
+            }
+        );
     });
 }
 
@@ -745,9 +846,7 @@ async function runVariableAnalysis(
             return;
         }
 
-        renderStatistics(
-            data
-        );
+        renderStatistics(data);
 
         loadAnalyticsHistory();
 
@@ -756,80 +855,9 @@ async function runVariableAnalysis(
         console.error(error);
 
         alert(
-            "Erro na análise estatística."
+            "Erro na análise."
         );
     }
-}
-
-// ==========================================
-// INSIGHTS
-// ==========================================
-
-function renderInsights(insights) {
-
-    if (
-        !insights
-        ||
-        insights.length === 0
-    ) {
-
-        return "";
-    }
-
-    let html = `
-
-        <div class="insights-container">
-
-            <div class="ai-analytics-header">
-
-                <div class="ai-pulse"></div>
-
-                <div class="insights-title">
-
-                    AI ANALYTICS
-
-                </div>
-
-            </div>
-    `;
-
-    insights.forEach(insight => {
-
-        html += `
-
-            <div class="
-                insight-card
-                insight-${insight.severity}
-            ">
-
-                <div class="
-                    insight-badge
-                    badge-${insight.severity}
-                ">
-
-                    ${insight.severity.toUpperCase()}
-
-                </div>
-
-                <div class="insight-title">
-
-                    ${insight.title}
-
-                </div>
-
-                <div class="insight-message">
-
-                    ${insight.message}
-
-                </div>
-
-            </div>
-        `;
-    });
-
-    html += `</div>`;
-
-    return html;
 }
 
 // ==========================================
@@ -843,6 +871,11 @@ function renderStatistics(data) {
             "statisticsResults"
         );
 
+    if (!container) {
+
+        return;
+    }
+
     let html = `
 
         <div class="statistics-grid">
@@ -852,20 +885,79 @@ function renderStatistics(data) {
         data.results
     ).forEach(([key, value]) => {
 
-        html += createStatCard(
-            key,
-            value
-        );
+        html += `
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+
+                    ${key
+                        .replaceAll("_", " ")
+                        .toUpperCase()}
+
+                </div>
+
+                <div class="stat-value">
+
+                    ${formatNumber(value)}
+
+                </div>
+
+            </div>
+        `;
     });
 
     html += `</div>`;
 
-    html += renderInsights(
+    if (
         data.insights
-    );
+        &&
+        data.insights.length > 0
+    ) {
 
-    container.innerHTML =
-        html;
+        html += `
+
+            <div class="insights-container">
+        `;
+
+        data.insights.forEach(insight => {
+
+            html += `
+
+                <div class="
+                    insight-card
+                    insight-${insight.severity}
+                ">
+
+                    <div class="
+                        insight-badge
+                        badge-${insight.severity}
+                    ">
+
+                        ${insight.severity.toUpperCase()}
+
+                    </div>
+
+                    <div class="insight-title">
+
+                        ${insight.title}
+
+                    </div>
+
+                    <div class="insight-message">
+
+                        ${insight.message}
+
+                    </div>
+
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+    }
+
+    container.innerHTML = html;
 }
 
 // ==========================================
@@ -885,7 +977,7 @@ async function loadAnalyticsHistory() {
             await response.json();
 
         renderAnalyticsHistory(
-            data.history
+            data.history || []
         );
 
     } catch (error) {
@@ -905,11 +997,12 @@ function renderAnalyticsHistory(history) {
             "analyticsHistory"
         );
 
-    if (
-        !history
-        ||
-        history.length === 0
-    ) {
+    if (!container) {
+
+        return;
+    }
+
+    if (history.length === 0) {
 
         container.innerHTML = `
 
@@ -927,7 +1020,7 @@ function renderAnalyticsHistory(history) {
 
     history.forEach(item => {
 
-        let firstInsight = "";
+        let insight = "";
 
         if (
             item.insights
@@ -935,7 +1028,7 @@ function renderAnalyticsHistory(history) {
             item.insights.length > 0
         ) {
 
-            firstInsight =
+            insight =
                 item.insights[0].message;
         }
 
@@ -957,15 +1050,13 @@ function renderAnalyticsHistory(history) {
 
                 <div class="history-analysis">
 
-                    ${item.analysis_type
-                        .replaceAll("_", " ")
-                        .toUpperCase()}
+                    ${item.analysis_type}
 
                 </div>
 
                 <div class="history-insight">
 
-                    ${firstInsight}
+                    ${insight}
 
                 </div>
 
@@ -973,46 +1064,20 @@ function renderAnalyticsHistory(history) {
         `;
     });
 
-    container.innerHTML =
-        html;
+    container.innerHTML = html;
 }
 
 // ==========================================
-// CARD
+// INIT
 // ==========================================
 
-function createStatCard(
-    title,
-    value
-) {
+window.addEventListener(
+    "DOMContentLoaded",
 
-    return `
+    function () {
 
-        <div class="stat-card">
+        loadAnalyticsHistory();
 
-            <div class="stat-title">
-
-                ${title
-                    .replaceAll("_", " ")
-                    .toUpperCase()}
-
-            </div>
-
-            <div class="stat-value">
-
-                ${formatNumber(value)}
-
-            </div>
-
-        </div>
-    `;
-}
-
-// ==========================================
-// INITIAL LOAD
-// ==========================================
-
-window.onload = function () {
-
-    loadAnalyticsHistory();
-};
+        activateAnalyticsButtons();
+    }
+);
