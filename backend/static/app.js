@@ -87,6 +87,8 @@ async function uploadFile() {
 
         renderModelConfig(data);
 
+        activateAnalyticsButtons();
+
     } catch (error) {
 
         console.error(error);
@@ -152,10 +154,6 @@ function renderModelConfig(data) {
     const suggestedTarget =
         data.suggestions.target_variable;
 
-    // ==========================================
-    // DATE OPTIONS
-    // ==========================================
-
     let dateOptions = "";
 
     dateColumns.forEach(col => {
@@ -163,16 +161,10 @@ function renderModelConfig(data) {
         dateOptions += `
 
             <option value="${col}">
-
                 ${col}
-
             </option>
         `;
     });
-
-    // ==========================================
-    // TARGET OPTIONS
-    // ==========================================
 
     let targetOptions = "";
 
@@ -189,16 +181,10 @@ function renderModelConfig(data) {
                 value="${col}"
                 ${selected}
             >
-
                 ${col}
-
             </option>
         `;
     });
-
-    // ==========================================
-    // FEATURES
-    // ==========================================
 
     let featureOptions = "";
 
@@ -223,41 +209,33 @@ function renderModelConfig(data) {
         }
     });
 
-    // ==========================================
-    // RENDER
-    // ==========================================
-
     container.innerHTML = `
 
-        <div class="model-grid">
+        <div class="config-group">
 
-            <div class="config-group">
+            <label>
+                Coluna Temporal
+            </label>
 
-                <label>
-                    Coluna Temporal
-                </label>
+            <select id="dateColumn">
 
-                <select id="dateColumn">
+                ${dateOptions}
 
-                    ${dateOptions}
+            </select>
 
-                </select>
+        </div>
 
-            </div>
+        <div class="config-group">
 
-            <div class="config-group">
+            <label>
+                Variável Alvo
+            </label>
 
-                <label>
-                    Variável Alvo
-                </label>
+            <select id="targetVariable">
 
-                <select id="targetVariable">
+                ${targetOptions}
 
-                    ${targetOptions}
-
-                </select>
-
-            </div>
+            </select>
 
         </div>
 
@@ -406,10 +384,12 @@ function renderChart(results) {
                                 results.actual_values,
 
                             borderColor:
-                                "#f97316",
+                                "#ff6b00",
 
                             backgroundColor:
-                                "rgba(249,115,22,0.1)",
+                                "rgba(255,107,0,0.08)",
+
+                            borderWidth: 3,
 
                             tension: 0.3
                         },
@@ -422,10 +402,12 @@ function renderChart(results) {
                                 results.predicted_values,
 
                             borderColor:
-                                "#3b82f6",
+                                "#00a3ff",
 
                             backgroundColor:
-                                "rgba(59,130,246,0.1)",
+                                "rgba(0,163,255,0.08)",
+
+                            borderWidth: 3,
 
                             tension: 0.3
                         }
@@ -455,13 +437,13 @@ function renderChart(results) {
 
                             ticks: {
 
-                                color: "#cbd5e1"
+                                color: "#94a3b8"
                             },
 
                             grid: {
 
                                 color:
-                                    "rgba(255,255,255,0.08)"
+                                    "rgba(255,255,255,0.05)"
                             }
                         },
 
@@ -469,13 +451,13 @@ function renderChart(results) {
 
                             ticks: {
 
-                                color: "#cbd5e1"
+                                color: "#94a3b8"
                             },
 
                             grid: {
 
                                 color:
-                                    "rgba(255,255,255,0.08)"
+                                    "rgba(255,255,255,0.05)"
                             }
                         }
                     }
@@ -485,12 +467,228 @@ function renderChart(results) {
 }
 
 // ==========================================
+// ACTIVATE ANALYTICS
+// ==========================================
+
+function activateAnalyticsButtons() {
+
+    const buttons =
+        document.querySelectorAll(
+            ".analysis-button"
+        );
+
+    buttons.forEach(button => {
+
+        button.addEventListener(
+            "click",
+            async function () {
+
+                if (!uploadedData) {
+
+                    alert(
+                        "Carregue uma planilha primeiro."
+                    );
+
+                    return;
+                }
+
+                const numericColumns =
+                    uploadedData.numeric_columns;
+
+                if (
+                    numericColumns.length === 0
+                ) {
+
+                    alert(
+                        "Nenhuma variável numérica encontrada."
+                    );
+
+                    return;
+                }
+
+                const variable =
+                    numericColumns[0];
+
+                let analysisType =
+                    "";
+
+                const buttonText =
+                    this.innerText.trim();
+
+                if (
+                    buttonText.includes(
+                        "TENDÊNCIA"
+                    )
+                ) {
+
+                    analysisType =
+                        "central_tendency";
+                }
+
+                else if (
+                    buttonText.includes(
+                        "DISPERSÃO"
+                    )
+                ) {
+
+                    analysisType =
+                        "dispersion";
+                }
+
+                else if (
+                    buttonText.includes(
+                        "POSIÇÃO"
+                    )
+                ) {
+
+                    analysisType =
+                        "position";
+                }
+
+                await runVariableAnalysis(
+                    variable,
+                    analysisType
+                );
+            }
+        );
+    });
+}
+
+// ==========================================
 // VARIABLE ANALYSIS
 // ==========================================
 
-async function runVariableAnalysis() {
+async function runVariableAnalysis(
+    variable,
+    analysisType
+) {
 
-    alert(
-        "Módulo estatístico em integração."
-    );
+    try {
+
+        const response =
+            await fetch(
+                "/variable-analysis",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        variable:
+                            variable,
+
+                        analysis_type:
+                            analysisType
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (data.error) {
+
+            alert(data.error);
+
+            return;
+        }
+
+        renderStatistics(
+            data
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Erro na análise estatística."
+        );
+    }
+}
+
+// ==========================================
+// RENDER STATISTICS
+// ==========================================
+
+function renderStatistics(data) {
+
+    const container =
+        document.getElementById(
+            "statisticsResults"
+        );
+
+    let html =
+        `<div class="statistics-grid">`;
+
+    Object.entries(
+        data.results
+    ).forEach(([key, value]) => {
+
+        if (
+            typeof value === "object"
+            &&
+            value !== null
+        ) {
+
+            Object.entries(value)
+                .forEach(
+                    ([subKey, subValue]) => {
+
+                        html += createStatCard(
+                            `${key} ${subKey}`,
+                            subValue
+                        );
+                    }
+                );
+        }
+
+        else {
+
+            html += createStatCard(
+                key,
+                value
+            );
+        }
+    });
+
+    html += `</div>`;
+
+    container.innerHTML =
+        html;
+}
+
+// ==========================================
+// CREATE STAT CARD
+// ==========================================
+
+function createStatCard(
+    title,
+    value
+) {
+
+    return `
+
+        <div class="stat-card">
+
+            <div class="stat-title">
+
+                ${title
+                    .replaceAll("_", " ")
+                    .toUpperCase()}
+
+            </div>
+
+            <div class="stat-value">
+
+                ${formatNumber(value)}
+
+            </div>
+
+        </div>
+    `;
 }
