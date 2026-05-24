@@ -1,3 +1,8 @@
+// ==========================================
+// MIDAS FRONTEND ENGINE
+// TEMPORAL VISUALIZATION RELEASE
+// ==========================================
+
 let uploadedData = null;
 
 let predictionChart = null;
@@ -27,6 +32,93 @@ function formatNumber(value) {
                 maximumFractionDigits: 2
             }
         );
+}
+
+// ==========================================
+// SIMPLE MOVING AVERAGE
+// ==========================================
+
+function calculateSMA(
+    values,
+    period = 5
+) {
+
+    let sma = [];
+
+    for (
+        let i = 0;
+        i < values.length;
+        i++
+    ) {
+
+        if (i < period - 1) {
+
+            sma.push(null);
+
+            continue;
+        }
+
+        let subset =
+            values.slice(
+                i - period + 1,
+                i + 1
+            );
+
+        let avg =
+            subset.reduce(
+                (a, b) => a + b,
+                0
+            ) / period;
+
+        sma.push(avg);
+    }
+
+    return sma;
+}
+
+// ==========================================
+// EXPONENTIAL MOVING AVERAGE
+// ==========================================
+
+function calculateEMA(
+    values,
+    period = 5
+) {
+
+    let ema = [];
+
+    const multiplier =
+        2 / (period + 1);
+
+    let previousEMA =
+        values[0];
+
+    ema.push(previousEMA);
+
+    for (
+        let i = 1;
+        i < values.length;
+        i++
+    ) {
+
+        let currentEMA = (
+
+            (
+                values[i]
+                - previousEMA
+            )
+
+            * multiplier
+
+        ) + previousEMA;
+
+        ema.push(currentEMA);
+
+        previousEMA =
+            currentEMA;
+    }
+
+    return ema;
 }
 
 // ==========================================
@@ -159,7 +251,6 @@ function renderModelConfig(data) {
     dateColumns.forEach(col => {
 
         dateOptions += `
-
             <option value="${col}">
                 ${col}
             </option>
@@ -176,7 +267,6 @@ function renderModelConfig(data) {
             : "";
 
         targetOptions += `
-
             <option
                 value="${col}"
                 ${selected}
@@ -193,7 +283,6 @@ function renderModelConfig(data) {
         if (col !== suggestedTarget) {
 
             featureOptions += `
-
                 <label class="feature-item">
 
                     <input
@@ -346,7 +435,7 @@ async function runModel() {
 }
 
 // ==========================================
-// CHART
+// ADVANCED CHART
 // ==========================================
 
 function renderChart(results) {
@@ -363,6 +452,21 @@ function renderChart(results) {
         predictionChart.destroy();
     }
 
+    const actual =
+        results.actual_values;
+
+    const sma =
+        calculateSMA(
+            actual,
+            5
+        );
+
+    const ema =
+        calculateEMA(
+            actual,
+            5
+        );
+
     predictionChart =
         new Chart(
             ctx,
@@ -376,12 +480,14 @@ function renderChart(results) {
 
                     datasets: [
 
+                        // REAL
+
                         {
                             label:
                                 "Real",
 
                             data:
-                                results.actual_values,
+                                actual,
 
                             borderColor:
                                 "#ff6b00",
@@ -393,6 +499,8 @@ function renderChart(results) {
 
                             tension: 0.3
                         },
+
+                        // PREDICTED
 
                         {
                             label:
@@ -410,6 +518,42 @@ function renderChart(results) {
                             borderWidth: 3,
 
                             tension: 0.3
+                        },
+
+                        // SMA
+
+                        {
+                            label:
+                                "SMA (5)",
+
+                            data:
+                                sma,
+
+                            borderColor:
+                                "#39ff14",
+
+                            borderWidth: 2,
+
+                            tension: 0.4,
+
+                            borderDash: [5, 5]
+                        },
+
+                        // EMA
+
+                        {
+                            label:
+                                "EMA (5)",
+
+                            data:
+                                ema,
+
+                            borderColor:
+                                "#ffd700",
+
+                            borderWidth: 2,
+
+                            tension: 0.4
                         }
                     ]
                 },
@@ -420,13 +564,25 @@ function renderChart(results) {
 
                     maintainAspectRatio: false,
 
+                    interaction: {
+
+                        mode: "index",
+
+                        intersect: false
+                    },
+
                     plugins: {
 
                         legend: {
 
                             labels: {
 
-                                color: "#ffffff"
+                                color: "#ffffff",
+
+                                font: {
+
+                                    size: 13
+                                }
                             }
                         }
                     },
@@ -486,11 +642,8 @@ function activateAnalyticsButtons() {
     uploadedData.numeric_columns.forEach(col => {
 
         statisticsSelect.innerHTML += `
-
             <option value="${col}">
-
                 ${col}
-
             </option>
         `;
     });
@@ -532,10 +685,6 @@ function activateAnalyticsButtons() {
                 const buttonText =
                     this.innerText.trim();
 
-                // ==========================================
-                // ROUTER
-                // ==========================================
-
                 if (
                     buttonText.includes(
                         "TENDÊNCIA"
@@ -574,6 +723,16 @@ function activateAnalyticsButtons() {
 
                     analysisType =
                         "shape";
+                }
+
+                else if (
+                    buttonText.includes(
+                        "TEMPORAL"
+                    )
+                ) {
+
+                    analysisType =
+                        "temporal";
                 }
 
                 await runVariableAnalysis(
