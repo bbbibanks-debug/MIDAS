@@ -25,11 +25,15 @@
 
     <div class="dashboard-layout">
 
+        <!-- ========================================== -->
         <!-- SIDEBAR -->
+        <!-- ========================================== -->
 
         <aside class="sidebar">
 
             <div>
+
+                <!-- LOGO -->
 
                 <div class="logo-area">
 
@@ -44,19 +48,19 @@
                         </h1>
 
                         <p class="logo-subtitle">
-                            v1.0
+                            Quantitative Research Terminal
                         </p>
 
                     </div>
 
                 </div>
 
-                <!-- MENU -->
+                <!-- NAVIGATION -->
 
                 <div class="menu-section">
 
                     <div class="menu-title">
-                        NAVEGAÇÃO
+                        WORKSPACE
                     </div>
 
                     <button class="menu-item active">
@@ -64,19 +68,19 @@
                     </button>
 
                     <button class="menu-item">
-                        Upload de Dados
+                        Econometrics
                     </button>
 
                     <button class="menu-item">
-                        Modelo Econométrico
+                        Statistical Analytics
                     </button>
 
                     <button class="menu-item">
-                        Estatística
+                        Temporal Analysis
                     </button>
 
                     <button class="menu-item">
-                        Resultados
+                        AI Analytics
                     </button>
 
                 </div>
@@ -86,19 +90,23 @@
                 <div class="menu-section">
 
                     <div class="menu-title">
-                        FERRAMENTAS
+                        TOOLS
                     </div>
 
                     <button class="menu-item">
-                        Análise Exploratória
+                        Forecasting
                     </button>
 
                     <button class="menu-item">
-                        Transformações
+                        Volatility
                     </button>
 
                     <button class="menu-item">
-                        Relatórios
+                        Correlation
+                    </button>
+
+                    <button class="menu-item">
+                        Reports
                     </button>
 
                 </div>
@@ -110,7 +118,7 @@
             <div class="system-card">
 
                 <h3>
-                    SISTEMA OPERACIONAL
+                    SISTEMA
                 </h3>
 
                 <div class="system-status">
@@ -118,15 +126,16 @@
                 </div>
 
                 <p>
-                    Ambiente:
-                    Produção
+                    Ambiente operacional ativo
                 </p>
 
             </div>
 
         </aside>
 
+        <!-- ========================================== -->
         <!-- MAIN -->
+        <!-- ========================================== -->
 
         <main class="main-content">
 
@@ -147,29 +156,33 @@
                 <div class="topbar-right">
 
                     <div class="status-live">
-                        ● SISTEMA OPERACIONAL
+                        ● ANALYTICS ENGINE ACTIVE
                     </div>
 
                     <div class="datetime-box">
-                        MIDAS TERMINAL
+                        MIDAS WORKSPACE
                     </div>
 
                 </div>
 
             </header>
 
+            <!-- ========================================== -->
             <!-- GRID -->
+            <!-- ========================================== -->
 
             <div class="dashboard-grid">
 
+                <!-- ========================================== -->
                 <!-- NEWS -->
+                <!-- ========================================== -->
 
                 <section class="card news-card">
 
                     <div class="card-header">
 
                         <h2>
-                            NOTÍCIAS & ATUALIZAÇÕES
+                            MARKET & SYSTEM
                         </h2>
 
                     </div>
@@ -179,17 +192,17 @@
                         <div class="news-item">
 
                             <span class="news-time">
-                                23:55
+                                LIVE
                             </span>
 
                             <div>
 
                                 <div class="news-title">
-                                    Analytics History Release iniciada
+                                    MIDAS Core Rebuild
                                 </div>
 
                                 <div class="news-description">
-                                    Workspace quantitativo persistente habilitado.
+                                    Frontend sincronizado e operacional.
                                 </div>
 
                             </div>
@@ -200,7 +213,9 @@
 
                 </section>
 
+                <!-- ========================================== -->
                 <!-- KPI -->
+                <!-- ========================================== -->
 
                 <section class="card kpi-card">
 
@@ -270,14 +285,16 @@
 
                 </section>
 
+                <!-- ========================================== -->
                 <!-- UPLOAD -->
+                <!-- ========================================== -->
 
                 <section class="card upload-card">
 
                     <div class="card-header">
 
                         <h2>
-                            UPLOAD DE DADOS
+                            DATA UPLOAD
                         </h2>
 
                     </div>
@@ -289,11 +306,11 @@
                         </div>
 
                         <p>
-                            Arraste sua planilha Excel aqui
+                            Upload Excel Dataset
                         </p>
 
                         <span>
-                            ou clique para selecionar
+                            XLSX / XLS
                         </span>
 
                     </div>
@@ -304,22 +321,26 @@
                     >
 
                     <button
+                        id="uploadButton"
                         class="primary-button"
-                        onclick="uploadFile()"
                     >
-                        ANALISAR PLANILHA
+
+                        ANALISAR DATASET
+
                     </button>
 
                 </section>
 
+                <!-- ========================================== -->
                 <!-- MODEL -->
+                <!-- ========================================== -->
 
                 <section class="card model-card">
 
                     <div class="card-header">
 
                         <h2>
-                            MODELO ECONOMÉTRICO
+                            ECONOMETRIC MODEL
                         </h2>
 
                     </div>
@@ -328,7 +349,7 @@
 
                         <div class="empty-state">
 
-                            Carregue uma planilha para configurar o modelo.
+                            Carregue um dataset para habilitar o modelo.
 
                         </div>
 
@@ -336,14 +357,16 @@
 
                 </section>
 
+                <!-- ========================================== -->
                 <!-- CHART -->
+                <!-- ========================================== -->
 
                 <section class="card chart-card">
 
                     <div class="card-header">
 
                         <h2>
-                            TENDÊNCIA TEMPORAL
+                            TEMPORAL ANALYTICS
                         </h2>
 
                     </div>
@@ -356,17 +379,21 @@
 
                 </section>
 
-                <!-- ANALYTICS -->
+                <!-- ========================================== -->
+                <!-- STATISTICS -->
+                <!-- ========================================== -->
 
                 <section class="card analytics-card">
 
                     <div class="card-header">
 
                         <h2>
-                            ANÁLISES ESTATÍSTICAS
+                            STATISTICAL ANALYTICS
                         </h2>
 
                     </div>
+
+                    <!-- VARIABLE -->
 
                     <div class="config-group">
 
@@ -384,29 +411,58 @@
 
                     </div>
 
+                    <!-- BUTTONS -->
+
                     <div class="analysis-group">
 
-                        <button class="analysis-button">
+                        <button
+                            class="analysis-button"
+                            data-analysis="central_tendency"
+                        >
+
                             TENDÊNCIA CENTRAL
+
                         </button>
 
-                        <button class="analysis-button">
+                        <button
+                            class="analysis-button"
+                            data-analysis="dispersion"
+                        >
+
                             DISPERSÃO
+
                         </button>
 
-                        <button class="analysis-button">
+                        <button
+                            class="analysis-button"
+                            data-analysis="position"
+                        >
+
                             POSIÇÃO
+
                         </button>
 
-                        <button class="analysis-button">
+                        <button
+                            class="analysis-button"
+                            data-analysis="shape"
+                        >
+
                             FORMA & CONCENTRAÇÃO
+
                         </button>
 
-                        <button class="analysis-button">
+                        <button
+                            class="analysis-button"
+                            data-analysis="temporal"
+                        >
+
                             TEMPORAL & VOLATILIDADE
+
                         </button>
 
                     </div>
+
+                    <!-- RESULTS -->
 
                     <div id="statisticsResults">
 
@@ -420,14 +476,16 @@
 
                 </section>
 
+                <!-- ========================================== -->
                 <!-- HISTORY -->
+                <!-- ========================================== -->
 
                 <section class="card history-card">
 
                     <div class="card-header">
 
                         <h2>
-                            HISTÓRICO ANALÍTICO
+                            ANALYTICS HISTORY
                         </h2>
 
                     </div>
@@ -449,6 +507,10 @@
         </main>
 
     </div>
+
+    <!-- ========================================== -->
+    <!-- APP -->
+    <!-- ========================================== -->
 
     <script src="/static/app.js"></script>
 
