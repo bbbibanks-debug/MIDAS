@@ -31,6 +31,10 @@ from analytics.shape import (
     calculate_shape
 )
 
+from analytics.moving_averages import (
+    calculate_temporal_analytics
+)
+
 # ==========================================
 # LIBS
 # ==========================================
@@ -404,6 +408,14 @@ async def variable_analysis(
 
             results = (
                 calculate_shape(
+                    series
+                )
+            )
+
+        elif analysis_type == "temporal":
+
+            results = (
+                calculate_temporal_analytics(
                     series
                 )
             )
