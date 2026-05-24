@@ -1,345 +1,496 @@
+let uploadedData = null;
+
+let predictionChart = null;
+
 // ==========================================
-// VARIABLE ANALYSIS
+// FORMAT NUMBER
 // ==========================================
 
-async function runVariableAnalysis() {
+function formatNumber(value) {
 
-    const variable =
-        document.getElementById(
-            "univariateVariable"
-        ).value;
+    if (
+        value === null
+        ||
+        value === undefined
+        ||
+        isNaN(value)
+    ) {
 
-    const analysisType =
-        document.getElementById(
-            "analysisType"
-        ).value;
+        return "-";
+    }
 
-    const resultsContainer =
+    return Number(value)
+        .toLocaleString(
+            "pt-BR",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+}
+
+// ==========================================
+// UPLOAD FILE
+// ==========================================
+
+async function uploadFile() {
+
+    const fileInput =
         document.getElementById(
-            "statisticsResults"
+            "fileInput"
         );
 
-    // ==========================================
-    // VALIDATION
-    // ==========================================
+    const file =
+        fileInput.files[0];
 
-    if (!variable) {
+    if (!file) {
 
         alert(
-            "Selecione uma variável."
+            "Selecione uma planilha."
         );
 
         return;
     }
 
-    // ==========================================
-    // LOADING
-    // ==========================================
+    const formData =
+        new FormData();
 
-    resultsContainer.innerHTML = `
-
-        <div class="empty-state">
-
-            Calculando estatísticas...
-
-        </div>
-    `;
+    formData.append(
+        "file",
+        file
+    );
 
     try {
 
-        // ==========================================
-        // REQUEST
-        // ==========================================
-
-        const response = await fetch(
-            "/variable-analysis",
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-
-                    variable:
-                        variable,
-
-                    analysis_type:
-                        analysisType
-                })
-            }
-        );
+        const response =
+            await fetch(
+                "/upload",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
 
         const data =
             await response.json();
 
-        // ==========================================
-        // ERROR
-        // ==========================================
-
         if (data.error) {
 
-            resultsContainer.innerHTML = `
-
-                <div class="card error">
-
-                    <h2>
-                        Erro
-                    </h2>
-
-                    <pre>
-
-${data.error}
-
-                    </pre>
-
-                </div>
-            `;
+            alert(data.error);
 
             return;
         }
 
-        // ==========================================
-        // RENDER
-        // ==========================================
+        uploadedData = data;
 
-        renderVariableAnalysis(
-            data
+        updateSummary(data);
+
+        renderModelConfig(data);
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Erro ao carregar planilha."
+        );
+    }
+}
+
+// ==========================================
+// UPDATE SUMMARY
+// ==========================================
+
+function updateSummary(data) {
+
+    document.getElementById(
+        "summaryRows"
+    ).innerText =
+        formatNumber(
+            data.dataset_info.rows
+        );
+
+    document.getElementById(
+        "summaryColumns"
+    ).innerText =
+        formatNumber(
+            data.dataset_info.columns
+        );
+
+    document.getElementById(
+        "summaryNumeric"
+    ).innerText =
+        formatNumber(
+            data.numeric_columns.length
+        );
+
+    document.getElementById(
+        "summaryDatetime"
+    ).innerText =
+        formatNumber(
+            data.possible_time_columns.length
+        );
+}
+
+// ==========================================
+// RENDER MODEL CONFIG
+// ==========================================
+
+function renderModelConfig(data) {
+
+    const container =
+        document.getElementById(
+            "modelConfig"
+        );
+
+    const dateColumns =
+        data.possible_time_columns;
+
+    const numericColumns =
+        data.numeric_columns;
+
+    const suggestedTarget =
+        data.suggestions.target_variable;
+
+    // ==========================================
+    // DATE OPTIONS
+    // ==========================================
+
+    let dateOptions = "";
+
+    dateColumns.forEach(col => {
+
+        dateOptions += `
+
+            <option value="${col}">
+
+                ${col}
+
+            </option>
+        `;
+    });
+
+    // ==========================================
+    // TARGET OPTIONS
+    // ==========================================
+
+    let targetOptions = "";
+
+    numericColumns.forEach(col => {
+
+        const selected =
+            col === suggestedTarget
+            ? "selected"
+            : "";
+
+        targetOptions += `
+
+            <option
+                value="${col}"
+                ${selected}
+            >
+
+                ${col}
+
+            </option>
+        `;
+    });
+
+    // ==========================================
+    // FEATURES
+    // ==========================================
+
+    let featureOptions = "";
+
+    numericColumns.forEach(col => {
+
+        if (col !== suggestedTarget) {
+
+            featureOptions += `
+
+                <label class="feature-item">
+
+                    <input
+                        type="checkbox"
+                        value="${col}"
+                        checked
+                    >
+
+                    ${col}
+
+                </label>
+            `;
+        }
+    });
+
+    // ==========================================
+    // RENDER
+    // ==========================================
+
+    container.innerHTML = `
+
+        <div class="model-grid">
+
+            <div class="config-group">
+
+                <label>
+                    Coluna Temporal
+                </label>
+
+                <select id="dateColumn">
+
+                    ${dateOptions}
+
+                </select>
+
+            </div>
+
+            <div class="config-group">
+
+                <label>
+                    Variável Alvo
+                </label>
+
+                <select id="targetVariable">
+
+                    ${targetOptions}
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <div class="config-group">
+
+            <label>
+                Variáveis Explicativas
+            </label>
+
+            <div class="features-grid">
+
+                ${featureOptions}
+
+            </div>
+
+        </div>
+
+        <button
+            class="primary-button"
+            onclick="runModel()"
+        >
+
+            EXECUTAR MODELO
+
+        </button>
+    `;
+}
+
+// ==========================================
+// RUN MODEL
+// ==========================================
+
+async function runModel() {
+
+    const dateColumn =
+        document.getElementById(
+            "dateColumn"
+        ).value;
+
+    const targetVariable =
+        document.getElementById(
+            "targetVariable"
+        ).value;
+
+    const checkedFeatures =
+        document.querySelectorAll(
+            ".features-grid input:checked"
+        );
+
+    let features = [];
+
+    checkedFeatures.forEach(item => {
+
+        features.push(
+            item.value
+        );
+    });
+
+    try {
+
+        const response =
+            await fetch(
+                "/run-model",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        date_column:
+                            dateColumn,
+
+                        target_variable:
+                            targetVariable,
+
+                        features:
+                            features
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (data.error) {
+
+            alert(data.error);
+
+            return;
+        }
+
+        renderChart(
+            data.model_results
         );
 
     } catch (error) {
 
         console.error(error);
 
-        resultsContainer.innerHTML = `
-
-            <div class="card error">
-
-                <h2>
-                    Erro
-                </h2>
-
-                <pre>
-
-${error}
-
-                </pre>
-
-            </div>
-        `;
-    }
-}
-
-// ==========================================
-// RENDER VARIABLE ANALYSIS
-// ==========================================
-
-function renderVariableAnalysis(data) {
-
-    const container =
-        document.getElementById(
-            "statisticsResults"
+        alert(
+            "Erro ao executar modelo."
         );
-
-    const variable =
-        data.variable;
-
-    const analysisType =
-        data.analysis_type;
-
-    const results =
-        data.results;
-
-    // ==========================================
-    // TITLES
-    // ==========================================
-
-    let analysisTitle =
-        "";
-
-    if (
-        analysisType ===
-        "central_tendency"
-    ) {
-
-        analysisTitle =
-            "Tendência Central";
     }
-
-    else if (
-        analysisType ===
-        "dispersion"
-    ) {
-
-        analysisTitle =
-            "Dispersão";
-    }
-
-    else if (
-        analysisType ===
-        "position"
-    ) {
-
-        analysisTitle =
-            "Separatrizes";
-    }
-
-    // ==========================================
-    // HEADER
-    // ==========================================
-
-    let html = `
-
-        <div class="analysis-header">
-
-            <div>
-
-                <div class="analysis-variable">
-
-                    ${variable}
-
-                </div>
-
-                <div class="analysis-type">
-
-                    ${analysisTitle}
-
-                </div>
-
-            </div>
-
-            <div class="analysis-badge">
-
-                MIDAS Analytics Engine
-
-            </div>
-
-        </div>
-    `;
-
-    // ==========================================
-    // GRID
-    // ==========================================
-
-    html += `
-
-        <div class="statistics-grid">
-    `;
-
-    // ==========================================
-    // OBJECT RENDER
-    // ==========================================
-
-    Object.entries(results).forEach(
-
-        ([key, value]) => {
-
-            // ==========================================
-            // NESTED OBJECT
-            // ==========================================
-
-            if (
-                typeof value === "object"
-                &&
-                value !== null
-            ) {
-
-                Object.entries(value).forEach(
-
-                    ([subKey, subValue]) => {
-
-                        html += createStatCard(
-                            `${key} ${subKey}`,
-                            subValue
-                        );
-                    }
-                );
-            }
-
-            // ==========================================
-            // SIMPLE VALUE
-            // ==========================================
-
-            else {
-
-                html += createStatCard(
-                    key,
-                    value
-                );
-            }
-        }
-    );
-
-    html += `
-
-        </div>
-    `;
-
-    // ==========================================
-    // RENDER
-    // ==========================================
-
-    container.innerHTML =
-        html;
 }
 
 // ==========================================
-// CREATE STAT CARD
+// RENDER CHART
 // ==========================================
 
-function createStatCard(
-    title,
-    value
-) {
+function renderChart(results) {
 
-    // ==========================================
-    // LABEL FORMAT
-    // ==========================================
+    const ctx =
+        document
+            .getElementById(
+                "predictionChart"
+            )
+            .getContext("2d");
 
-    const formattedTitle =
-        title
-            .replaceAll("_", " ")
-            .toUpperCase();
+    if (predictionChart) {
 
-    // ==========================================
-    // VALUE FORMAT
-    // ==========================================
-
-    let formattedValue =
-        value;
-
-    if (
-        typeof value === "number"
-    ) {
-
-        formattedValue =
-            formatNumber(value);
+        predictionChart.destroy();
     }
 
-    return `
+    predictionChart =
+        new Chart(
+            ctx,
+            {
+                type: "line",
 
-        <div class="stat-card">
+                data: {
 
-            <div class="stat-title">
+                    labels:
+                        results.time_values,
 
-                ${formattedTitle}
+                    datasets: [
 
-            </div>
+                        {
+                            label:
+                                "Real",
 
-            <div class="stat-value">
+                            data:
+                                results.actual_values,
 
-                ${formattedValue}
+                            borderColor:
+                                "#f97316",
 
-            </div>
+                            backgroundColor:
+                                "rgba(249,115,22,0.1)",
 
-            <div class="stat-subtitle">
+                            tension: 0.3
+                        },
 
-                Estatística calculada pela engine MIDAS.
+                        {
+                            label:
+                                "Predito",
 
-            </div>
+                            data:
+                                results.predicted_values,
 
-        </div>
-    `;
+                            borderColor:
+                                "#3b82f6",
+
+                            backgroundColor:
+                                "rgba(59,130,246,0.1)",
+
+                            tension: 0.3
+                        }
+                    ]
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+
+                        legend: {
+
+                            labels: {
+
+                                color: "#ffffff"
+                            }
+                        }
+                    },
+
+                    scales: {
+
+                        x: {
+
+                            ticks: {
+
+                                color: "#cbd5e1"
+                            },
+
+                            grid: {
+
+                                color:
+                                    "rgba(255,255,255,0.08)"
+                            }
+                        },
+
+                        y: {
+
+                            ticks: {
+
+                                color: "#cbd5e1"
+                            },
+
+                            grid: {
+
+                                color:
+                                    "rgba(255,255,255,0.08)"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+}
+
+// ==========================================
+// VARIABLE ANALYSIS
+// ==========================================
+
+async function runVariableAnalysis() {
+
+    alert(
+        "Módulo estatístico em integração."
+    );
 }
