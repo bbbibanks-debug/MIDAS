@@ -1,5 +1,5 @@
 // ==========================================
-// MIDAS STABLE OPERATIONAL ENGINE
+// MIDAS CORE REBUILD ENGINE
 // ==========================================
 
 let uploadedData = null;
@@ -86,7 +86,7 @@ function calculateEMA(values, period = 5) {
 
     for (let i = 1; i < values.length; i++) {
 
-        let currentEMA = (
+        const currentEMA = (
 
             (
                 values[i]
@@ -106,6 +106,43 @@ function calculateEMA(values, period = 5) {
 }
 
 // ==========================================
+// INIT
+// ==========================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+
+    function () {
+
+        initializeSystem();
+    }
+);
+
+// ==========================================
+// INITIALIZE
+// ==========================================
+
+function initializeSystem() {
+
+    const uploadButton =
+        document.getElementById(
+            "uploadButton"
+        );
+
+    if (uploadButton) {
+
+        uploadButton.addEventListener(
+            "click",
+            uploadFile
+        );
+    }
+
+    initializeAnalyticsButtons();
+
+    loadAnalyticsHistory();
+}
+
+// ==========================================
 // UPLOAD
 // ==========================================
 
@@ -118,6 +155,8 @@ async function uploadFile() {
 
     if (
         !fileInput
+        ||
+        !fileInput.files
         ||
         !fileInput.files[0]
     ) {
@@ -166,10 +205,6 @@ async function uploadFile() {
 
         populateStatisticsVariable(data);
 
-        activateAnalyticsButtons();
-
-        loadAnalyticsHistory();
-
         alert(
             "Dataset carregado com sucesso."
         );
@@ -190,48 +225,39 @@ async function uploadFile() {
 
 function updateSummary(data) {
 
-    const rows =
-        document.getElementById(
-            "summaryRows"
-        );
+    setText(
+        "summaryRows",
+        data.dataset_info.rows
+    );
 
-    const cols =
-        document.getElementById(
-            "summaryColumns"
-        );
+    setText(
+        "summaryColumns",
+        data.dataset_info.columns
+    );
 
-    const numeric =
-        document.getElementById(
-            "summaryNumeric"
-        );
+    setText(
+        "summaryNumeric",
+        data.numeric_columns.length
+    );
 
-    const temporal =
-        document.getElementById(
-            "summaryDatetime"
-        );
+    setText(
+        "summaryDatetime",
+        data.possible_time_columns.length
+    );
+}
 
-    if (rows) {
+// ==========================================
+// SET TEXT
+// ==========================================
 
-        rows.innerText =
-            data.dataset_info.rows;
-    }
+function setText(id, value) {
 
-    if (cols) {
+    const el =
+        document.getElementById(id);
 
-        cols.innerText =
-            data.dataset_info.columns;
-    }
+    if (el) {
 
-    if (numeric) {
-
-        numeric.innerText =
-            data.numeric_columns.length;
-    }
-
-    if (temporal) {
-
-        temporal.innerText =
-            data.possible_time_columns.length;
+        el.innerText = value;
     }
 }
 
@@ -251,36 +277,55 @@ function renderModelConfig(data) {
         return;
     }
 
-    const numericColumns =
+    const numeric =
         data.numeric_columns || [];
 
-    const timeColumns =
+    const temporal =
         data.possible_time_columns || [];
 
+    if (numeric.length < 2) {
+
+        container.innerHTML = `
+
+            <div class="empty-state">
+
+                O dataset precisa possuir pelo menos
+                duas variáveis numéricas.
+
+            </div>
+        `;
+
+        return;
+    }
+
     // ==========================================
-    // FALLBACK
+    // TEMPORAL
     // ==========================================
 
     let temporalOptions = "";
 
-    if (timeColumns.length === 0) {
+    if (temporal.length === 0) {
 
         temporalOptions = `
 
             <option value="index">
+
                 Índice Temporal
+
             </option>
         `;
     }
 
     else {
 
-        timeColumns.forEach(col => {
+        temporal.forEach(col => {
 
             temporalOptions += `
 
                 <option value="${col}">
+
                     ${col}
+
                 </option>
             `;
         });
@@ -292,7 +337,7 @@ function renderModelConfig(data) {
 
     let targetOptions = "";
 
-    numericColumns.forEach((col, index) => {
+    numeric.forEach((col, index) => {
 
         targetOptions += `
 
@@ -300,7 +345,9 @@ function renderModelConfig(data) {
                 value="${col}"
                 ${index === 0 ? "selected" : ""}
             >
+
                 ${col}
+
             </option>
         `;
     });
@@ -311,9 +358,9 @@ function renderModelConfig(data) {
 
     let featureOptions = "";
 
-    numericColumns.forEach((col, index) => {
+    numeric.forEach((col, index) => {
 
-        if (index > 0) {
+        if (index !== 0) {
 
             featureOptions += `
 
@@ -386,10 +433,6 @@ function renderModelConfig(data) {
         </button>
     `;
 
-    // ==========================================
-    // BUTTON EVENT
-    // ==========================================
-
     const runButton =
         document.getElementById(
             "runModelButton"
@@ -452,87 +495,52 @@ function populateStatisticsVariable(data) {
 }
 
 // ==========================================
-// RUN MODEL
+// MODEL
 // ==========================================
 
 async function runModel() {
 
+    if (!uploadedData) {
+
+        alert(
+            "Carregue um dataset."
+        );
+
+        return;
+    }
+
+    const target =
+        document.getElementById(
+            "targetVariable"
+        )?.value;
+
+    const temporal =
+        document.getElementById(
+            "dateColumn"
+        )?.value || "index";
+
+    const checked =
+        document.querySelectorAll(
+            ".features-grid input:checked"
+        );
+
+    let features = [];
+
+    checked.forEach(item => {
+
+        features.push(item.value);
+    });
+
+    if (features.length === 0) {
+
+        alert(
+            "Selecione pelo menos uma variável explicativa."
+        );
+
+        return;
+    }
+
     try {
-
-        const targetVariable =
-            document.getElementById(
-                "targetVariable"
-            )?.value;
-
-        const dateColumn =
-            document.getElementById(
-                "dateColumn"
-            )?.value;
-
-        if (!targetVariable) {
-
-            alert(
-                "Selecione uma variável alvo."
-            );
-
-            return;
-        }
-
-        const checkedFeatures =
-            document.querySelectorAll(
-                ".features-grid input:checked"
-            );
-
-        let features = [];
-
-        checkedFeatures.forEach(item => {
-
-            features.push(
-                item.value
-            );
-        });
-
-        // ==========================================
-        // FALLBACK
-        // ==========================================
-
-        if (features.length === 0) {
-
-            const available =
-                uploadedData.numeric_columns
-                .filter(
-                    col =>
-                    col !== targetVariable
-                );
-
-            if (available.length > 0) {
-
-                features.push(
-                    available[0]
-                );
-            }
-        }
-
-        if (features.length === 0) {
-
-            alert(
-                "Dataset precisa de pelo menos duas variáveis numéricas."
-            );
-
-            return;
-        }
-
-        const payload = {
-
-            date_column:
-                dateColumn || "index",
-
-            target_variable:
-                targetVariable,
-
-            features:
-                features
-        };
 
         const response =
             await fetch(
@@ -545,9 +553,17 @@ async function runModel() {
                             "application/json"
                     },
 
-                    body: JSON.stringify(
-                        payload
-                    )
+                    body: JSON.stringify({
+
+                        date_column:
+                            temporal,
+
+                        target_variable:
+                            target,
+
+                        features:
+                            features
+                    })
                 }
             );
 
@@ -581,21 +597,21 @@ async function runModel() {
 
 function renderChart(results) {
 
-    if (
-        !results
-        ||
-        !results.actual_values
-    ) {
-
-        return;
-    }
-
     const canvas =
         document.getElementById(
             "predictionChart"
         );
 
     if (!canvas) {
+
+        return;
+    }
+
+    if (
+        !results
+        ||
+        !results.actual_values
+    ) {
 
         return;
     }
@@ -703,7 +719,7 @@ function renderChart(results) {
 // ANALYTICS BUTTONS
 // ==========================================
 
-function activateAnalyticsButtons() {
+function initializeAnalyticsButtons() {
 
     const buttons =
         document.querySelectorAll(
@@ -717,18 +733,19 @@ function activateAnalyticsButtons() {
 
             async function () {
 
-                const select =
-                    document.getElementById(
-                        "statisticsVariable"
-                    );
+                if (!uploadedData) {
 
-                if (!select) {
+                    alert(
+                        "Carregue um dataset."
+                    );
 
                     return;
                 }
 
                 const variable =
-                    select.value;
+                    document.getElementById(
+                        "statisticsVariable"
+                    )?.value;
 
                 if (!variable) {
 
@@ -739,60 +756,8 @@ function activateAnalyticsButtons() {
                     return;
                 }
 
-                let analysisType = "";
-
-                const text =
-                    this.innerText;
-
-                if (
-                    text.includes(
-                        "TENDÊNCIA"
-                    )
-                ) {
-
-                    analysisType =
-                        "central_tendency";
-                }
-
-                else if (
-                    text.includes(
-                        "DISPERSÃO"
-                    )
-                ) {
-
-                    analysisType =
-                        "dispersion";
-                }
-
-                else if (
-                    text.includes(
-                        "POSIÇÃO"
-                    )
-                ) {
-
-                    analysisType =
-                        "position";
-                }
-
-                else if (
-                    text.includes(
-                        "FORMA"
-                    )
-                ) {
-
-                    analysisType =
-                        "shape";
-                }
-
-                else if (
-                    text.includes(
-                        "TEMPORAL"
-                    )
-                ) {
-
-                    analysisType =
-                        "temporal";
-                }
+                const analysisType =
+                    this.dataset.analysis;
 
                 await runVariableAnalysis(
                     variable,
@@ -861,7 +826,7 @@ async function runVariableAnalysis(
 }
 
 // ==========================================
-// RENDER STATISTICS
+// STATISTICS
 // ==========================================
 
 function renderStatistics(data) {
@@ -908,6 +873,10 @@ function renderStatistics(data) {
     });
 
     html += `</div>`;
+
+    // ==========================================
+    // INSIGHTS
+    // ==========================================
 
     if (
         data.insights
@@ -1050,7 +1019,9 @@ function renderAnalyticsHistory(history) {
 
                 <div class="history-analysis">
 
-                    ${item.analysis_type}
+                    ${item.analysis_type
+                        .replaceAll("_", " ")
+                        .toUpperCase()}
 
                 </div>
 
@@ -1066,18 +1037,3 @@ function renderAnalyticsHistory(history) {
 
     container.innerHTML = html;
 }
-
-// ==========================================
-// INIT
-// ==========================================
-
-window.addEventListener(
-    "DOMContentLoaded",
-
-    function () {
-
-        loadAnalyticsHistory();
-
-        activateAnalyticsButtons();
-    }
-);
