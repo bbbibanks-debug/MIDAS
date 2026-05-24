@@ -72,7 +72,7 @@ body {
 }
 
 /* ==========================================
-TERMINAL
+LAYOUT
 ========================================== */
 
 .terminal-layout {
@@ -88,7 +88,7 @@ SIDEBAR
 
 .terminal-sidebar {
 
-    width: 270px;
+    width: 260px;
 
     background:
         linear-gradient(
@@ -100,7 +100,7 @@ SIDEBAR
     border-right:
         1px solid var(--border);
 
-    padding: 22px;
+    padding: 20px;
 
     display: flex;
 
@@ -120,26 +120,26 @@ LOGO
 
 .logo-main {
 
-    font-size: 42px;
+    font-size: 38px;
 
     font-weight: 900;
 
-    letter-spacing: -2px;
-
     color:
         var(--orange);
+
+    letter-spacing: -2px;
 }
 
 .logo-sub {
 
-    margin-top: 8px;
-
-    line-height: 1.5;
+    margin-top: 10px;
 
     color:
         var(--muted);
 
-    font-size: 13px;
+    font-size: 12px;
+
+    line-height: 1.6;
 }
 
 /* ==========================================
@@ -148,7 +148,7 @@ NAV
 
 .nav-section {
 
-    margin-bottom: 34px;
+    margin-bottom: 32px;
 }
 
 .nav-title {
@@ -156,11 +156,11 @@ NAV
     color:
         var(--muted);
 
-    font-size: 11px;
+    font-size: 10px;
+
+    letter-spacing: 2px;
 
     margin-bottom: 12px;
-
-    letter-spacing: 1.5px;
 }
 
 .nav-item {
@@ -174,7 +174,7 @@ NAV
     color:
         var(--text);
 
-    padding: 12px 14px;
+    padding: 12px;
 
     border-radius: 8px;
 
@@ -185,8 +185,6 @@ NAV
     cursor: pointer;
 
     transition: 0.2s;
-
-    font-size: 14px;
 }
 
 .nav-item:hover {
@@ -213,7 +211,7 @@ SYSTEM
     border-top:
         1px solid var(--border);
 
-    padding-top: 22px;
+    padding-top: 20px;
 }
 
 .system-title {
@@ -221,11 +219,11 @@ SYSTEM
     color:
         var(--muted);
 
-    font-size: 11px;
+    font-size: 10px;
+
+    letter-spacing: 2px;
 
     margin-bottom: 12px;
-
-    letter-spacing: 1px;
 }
 
 .system-live {
@@ -235,7 +233,7 @@ SYSTEM
 
     font-weight: 800;
 
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .system-description {
@@ -243,7 +241,7 @@ SYSTEM
     color:
         var(--muted);
 
-    font-size: 13px;
+    font-size: 12px;
 
     line-height: 1.5;
 }
@@ -257,6 +255,8 @@ MAIN
     flex: 1;
 
     padding: 18px;
+
+    overflow: visible;
 }
 
 /* ==========================================
@@ -270,7 +270,7 @@ RIBBON
     grid-template-columns:
         repeat(6, 1fr);
 
-    gap: 10px;
+    gap: 12px;
 
     margin-bottom: 18px;
 }
@@ -287,9 +287,9 @@ RIBBON
     border:
         1px solid var(--border);
 
-    padding: 14px;
-
     border-radius: 10px;
+
+    padding: 14px;
 }
 
 .ribbon-label {
@@ -299,9 +299,9 @@ RIBBON
 
     font-size: 10px;
 
-    margin-bottom: 10px;
-
     letter-spacing: 1px;
+
+    margin-bottom: 10px;
 }
 
 .ribbon-value {
@@ -345,9 +345,11 @@ GRID
         2fr 1fr;
 
     grid-template-rows:
-        520px auto auto;
+        auto auto auto;
 
     gap: 16px;
+
+    overflow: visible;
 }
 
 /* ==========================================
@@ -370,7 +372,9 @@ PANELS
 
     padding: 18px;
 
-    overflow: hidden;
+    overflow: visible;
+
+    position: relative;
 }
 
 /* ==========================================
@@ -426,6 +430,8 @@ ANALYTICS PANEL
     flex-direction: column;
 
     gap: 18px;
+
+    overflow: visible;
 }
 
 .analytics-section {
@@ -439,6 +445,8 @@ ANALYTICS PANEL
     border-radius: 10px;
 
     padding: 14px;
+
+    overflow: visible;
 }
 
 .analytics-title {
@@ -450,6 +458,15 @@ ANALYTICS PANEL
     margin-bottom: 14px;
 
     letter-spacing: 1px;
+}
+
+/* ==========================================
+MODEL PANEL
+========================================== */
+
+.model-panel {
+
+    overflow: visible;
 }
 
 /* ==========================================
@@ -473,17 +490,40 @@ select {
     padding: 12px;
 
     background:
-        rgba(255,255,255,0.03);
+        #0f1a2c;
 
     border:
-        1px solid var(--border);
+        1px solid rgba(255,255,255,0.08);
 
     border-radius: 8px;
 
     color:
         white;
 
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+
+    font-size: 14px;
+
+    appearance: auto;
+
+    overflow: visible;
+
+    position: relative;
+
+    z-index: 9999;
+
+    min-height: 44px;
+}
+
+option {
+
+    background:
+        #0f1a2c;
+
+    color:
+        white;
+
+    padding: 12px;
 }
 
 /* ==========================================
@@ -542,16 +582,11 @@ BUTTONS
 MODEL
 ========================================== */
 
-.model-panel {
-
-    display: flex;
-
-    flex-direction: column;
-}
-
 .config-group {
 
     margin-bottom: 18px;
+
+    overflow: visible;
 }
 
 .config-group label {
@@ -573,6 +608,10 @@ MODEL
         repeat(2, 1fr);
 
     gap: 10px;
+
+    margin-bottom: 20px;
+
+    overflow: visible;
 }
 
 .feature-item {
@@ -584,16 +623,23 @@ MODEL
     gap: 10px;
 
     background:
-        rgba(255,255,255,0.025);
+        rgba(255,255,255,0.03);
 
     border:
-        1px solid var(--border);
+        1px solid rgba(255,255,255,0.06);
 
     border-radius: 8px;
 
-    padding: 10px;
+    padding: 12px;
 
     font-size: 13px;
+
+    min-height: 44px;
+}
+
+.feature-item input {
+
+    transform: scale(1.1);
 }
 
 /* ==========================================
@@ -620,10 +666,10 @@ MODEL RESULTS
 .result-card {
 
     background:
-        rgba(255,255,255,0.025);
+        rgba(255,255,255,0.03);
 
     border:
-        1px solid var(--border);
+        1px solid rgba(255,255,255,0.06);
 
     border-radius: 8px;
 
@@ -654,10 +700,10 @@ COEFFICIENTS
 .coefficients-panel {
 
     background:
-        rgba(255,255,255,0.02);
+        rgba(255,255,255,0.03);
 
     border:
-        1px solid var(--border);
+        1px solid rgba(255,255,255,0.06);
 
     border-radius: 10px;
 
@@ -716,10 +762,10 @@ STATISTICS
 .stat-card {
 
     background:
-        rgba(255,255,255,0.025);
+        rgba(255,255,255,0.03);
 
     border:
-        1px solid var(--border);
+        1px solid rgba(255,255,255,0.06);
 
     border-radius: 8px;
 
@@ -761,10 +807,10 @@ INSIGHTS
 .insight-card {
 
     background:
-        rgba(255,255,255,0.025);
+        rgba(255,255,255,0.03);
 
     border:
-        1px solid var(--border);
+        1px solid rgba(255,255,255,0.06);
 
     border-left:
         3px solid var(--cyan);
@@ -830,10 +876,10 @@ HISTORY
 .history-item {
 
     background:
-        rgba(255,255,255,0.025);
+        rgba(255,255,255,0.03);
 
     border:
-        1px solid var(--border);
+        1px solid rgba(255,255,255,0.06);
 
     border-radius: 8px;
 
@@ -903,9 +949,6 @@ RESPONSIVE
 
         grid-template-columns:
             1fr;
-
-        grid-template-rows:
-            auto;
     }
 
     .terminal-ribbon {
