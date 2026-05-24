@@ -31,7 +31,9 @@
 
         <aside class="sidebar">
 
-            <div class="sidebar-top">
+            <div>
+
+                <!-- LOGO -->
 
                 <div class="logo-area">
 
@@ -46,14 +48,20 @@
                         </h1>
 
                         <p class="logo-subtitle">
-                            Mixed-frequency Intelligent Data Analysis System
+                            v1.0
                         </p>
 
                     </div>
 
                 </div>
 
-                <nav class="sidebar-menu">
+                <!-- MENU -->
+
+                <div class="menu-section">
+
+                    <div class="menu-title">
+                        NAVEGAÇÃO
+                    </div>
 
                     <button class="menu-item active">
                         Dashboard
@@ -75,21 +83,50 @@
                         Resultados
                     </button>
 
-                </nav>
+                </div>
+
+                <!-- TOOLS -->
+
+                <div class="menu-section">
+
+                    <div class="menu-title">
+                        FERRAMENTAS
+                    </div>
+
+                    <button class="menu-item">
+                        Análise Exploratória
+                    </button>
+
+                    <button class="menu-item">
+                        Transformações
+                    </button>
+
+                    <button class="menu-item">
+                        Relatórios
+                    </button>
+
+                </div>
 
             </div>
 
-            <div class="sidebar-bottom">
+            <!-- SYSTEM -->
 
-                <div class="version-card">
+            <div class="system-card">
 
-                    <h3>MIDAS v1.0</h3>
+                <h3>
+                    SISTEMA OPERACIONAL
+                </h3>
 
-                    <p>
-                        Plataforma de análise econométrica inteligente.
-                    </p>
+                <div class="system-status">
+
+                    ● ONLINE
 
                 </div>
+
+                <p>
+                    Ambiente:
+                    Produção
+                </p>
 
             </div>
 
@@ -101,9 +138,7 @@
 
         <main class="main-content">
 
-            <!-- ====================================== -->
-            <!-- HEADER -->
-            <!-- ====================================== -->
+            <!-- TOPBAR -->
 
             <header class="topbar">
 
@@ -114,280 +149,82 @@
                     </h1>
 
                     <p class="page-subtitle">
-                        Plataforma Econométrica Inteligente
+                        Mixed-frequency Intelligent Data Analysis System
                     </p>
 
                 </div>
 
-                <div class="status-card">
+                <div class="topbar-right">
 
-                    <div class="status-dot"></div>
+                    <div class="status-live">
 
-                    <span>
-                        Sistema operacional
-                    </span>
+                        ● SISTEMA OPERACIONAL
+
+                    </div>
+
+                    <div class="datetime-box">
+
+                        23/05/2026
+
+                    </div>
 
                 </div>
 
             </header>
 
-            <!-- ====================================== -->
             <!-- GRID -->
-            <!-- ====================================== -->
 
             <div class="dashboard-grid">
 
-                <!-- ====================================== -->
-                <!-- UPLOAD -->
-                <!-- ====================================== -->
+                <!-- NEWS -->
 
-                <section class="card upload-card">
+                <section class="card news-card">
 
                     <div class="card-header">
 
                         <h2>
-                            Upload da Planilha
+                            NOTÍCIAS & ATUALIZAÇÕES
                         </h2>
 
                     </div>
 
-                    <div class="upload-box">
+                    <div class="news-list">
 
-                        <div class="upload-icon">
-                            ☁️
-                        </div>
+                        <div class="news-item">
 
-                        <p>
-                            Clique para selecionar sua planilha
-                        </p>
-
-                        <span>
-                            Excel (.xlsx)
-                        </span>
-
-                        <input
-                            type="file"
-                            id="fileInput"
-                        >
-
-                    </div>
-
-                    <button
-                        class="primary-button"
-                        onclick="uploadFile()"
-                    >
-                        Analisar Planilha
-                    </button>
-
-                </section>
-
-                <!-- ====================================== -->
-                <!-- SUMMARY -->
-                <!-- ====================================== -->
-
-                <section class="card summary-card">
-
-                    <div class="card-header">
-
-                        <h2>
-                            Resumo do Dataset
-                        </h2>
-
-                    </div>
-
-                    <div class="summary-grid">
-
-                        <div class="summary-item">
-
-                            <span class="summary-label">
-                                Linhas
+                            <span class="news-time">
+                                21:30
                             </span>
 
-                            <span
-                                class="summary-value"
-                                id="summaryRows"
-                            >
-                                -
+                            <div>
+
+                                <div class="news-title">
+                                    Sistema MIDAS atualizado
+                                </div>
+
+                                <div class="news-description">
+                                    Novas funcionalidades estatísticas implementadas.
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="news-item">
+
+                            <span class="news-time">
+                                20:45
                             </span>
 
-                        </div>
+                            <div>
 
-                        <div class="summary-item">
+                                <div class="news-title">
+                                    Modelo econométrico otimizado
+                                </div>
 
-                            <span class="summary-label">
-                                Colunas
-                            </span>
-
-                            <span
-                                class="summary-value"
-                                id="summaryColumns"
-                            >
-                                -
-                            </span>
-
-                        </div>
-
-                        <div class="summary-item">
-
-                            <span class="summary-label">
-                                Variáveis Numéricas
-                            </span>
-
-                            <span
-                                class="summary-value"
-                                id="summaryNumeric"
-                            >
-                                -
-                            </span>
-
-                        </div>
-
-                        <div class="summary-item">
-
-                            <span class="summary-label">
-                                Variáveis Temporais
-                            </span>
-
-                            <span
-                                class="summary-value"
-                                id="summaryDatetime"
-                            >
-                                -
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-                <!-- ====================================== -->
-                <!-- UNIVARIATE ANALYSIS -->
-                <!-- ====================================== -->
-
-                <section class="card metrics-card">
-
-                    <div class="card-header">
-
-                        <h2>
-                            Análise Estatística Univariada
-                        </h2>
-
-                    </div>
-
-                    <div class="univariate-grid">
-
-                        <!-- VARIABLE -->
-
-                        <div class="config-box">
-
-                            <label>
-                                Variável
-                            </label>
-
-                            <select id="univariateVariable">
-
-                                <option value="">
-                                    Selecione
-                                </option>
-
-                            </select>
-
-                        </div>
-
-                        <!-- TYPE -->
-
-                        <div class="config-box">
-
-                            <label>
-                                Grupo Estatístico
-                            </label>
-
-                            <select id="analysisType">
-
-                                <option value="central_tendency">
-                                    Tendência Central
-                                </option>
-
-                                <option value="dispersion">
-                                    Dispersão
-                                </option>
-
-                                <option value="position">
-                                    Separatrizes
-                                </option>
-
-                            </select>
-
-                        </div>
-
-                        <!-- BUTTON -->
-
-                        <div class="config-box">
-
-                            <label>
-                                Executar
-                            </label>
-
-                            <button
-                                class="primary-button"
-                                onclick="runVariableAnalysis()"
-                            >
-                                Analisar Série
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                    <!-- RESULTS -->
-
-                    <div
-                        class="statistics-results"
-                        id="statisticsResults"
-                    >
-
-                        <div class="empty-state">
-
-                            Selecione uma variável para iniciar a análise.
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-                <!-- ====================================== -->
-                <!-- CONFIG -->
-                <!-- ====================================== -->
-
-                <section class="card accordion-card">
-
-                    <div
-                        class="accordion-header"
-                        onclick="toggleAccordion('configContent', this)"
-                    >
-
-                        <h2>
-                            Configuração do Modelo
-                        </h2>
-
-                        <span class="accordion-icon">
-                            ▼
-                        </span>
-
-                    </div>
-
-                    <div
-                        class="accordion-content collapsed"
-                        id="configContent"
-                    >
-
-                        <div id="modelConfig">
-
-                            <div class="empty-state">
-
-                                Carregue uma planilha para configurar o modelo.
+                                <div class="news-description">
+                                    Performance aprimorada para grandes datasets.
+                                </div>
 
                             </div>
 
@@ -397,28 +234,69 @@
 
                 </section>
 
-                <!-- ====================================== -->
-                <!-- METRICS -->
-                <!-- ====================================== -->
+                <!-- KPI -->
 
-                <section class="card metrics-card">
+                <section class="card kpi-card">
 
-                    <div class="card-header">
+                    <div class="kpi-grid">
 
-                        <h2>
-                            Resultados do Modelo
-                        </h2>
+                        <div class="kpi-item">
 
-                    </div>
+                            <div class="kpi-label">
+                                OBSERVAÇÕES
+                            </div>
 
-                    <div
-                        class="metrics-grid"
-                        id="metricsGrid"
-                    >
+                            <div
+                                class="kpi-value"
+                                id="summaryRows"
+                            >
+                                -
+                            </div>
 
-                        <div class="empty-state">
+                        </div>
 
-                            Execute um modelo para visualizar métricas.
+                        <div class="kpi-item">
+
+                            <div class="kpi-label">
+                                COLUNAS
+                            </div>
+
+                            <div
+                                class="kpi-value"
+                                id="summaryColumns"
+                            >
+                                -
+                            </div>
+
+                        </div>
+
+                        <div class="kpi-item">
+
+                            <div class="kpi-label">
+                                VARIÁVEIS NUMÉRICAS
+                            </div>
+
+                            <div
+                                class="kpi-value"
+                                id="summaryNumeric"
+                            >
+                                -
+                            </div>
+
+                        </div>
+
+                        <div class="kpi-item">
+
+                            <div class="kpi-label">
+                                VARIÁVEIS TEMPORAIS
+                            </div>
+
+                            <div
+                                class="kpi-value"
+                                id="summaryDatetime"
+                            >
+                                -
+                            </div>
 
                         </div>
 
@@ -426,16 +304,82 @@
 
                 </section>
 
-                <!-- ====================================== -->
+                <!-- UPLOAD -->
+
+                <section class="card upload-card">
+
+                    <div class="card-header">
+
+                        <h2>
+                            UPLOAD DE DADOS
+                        </h2>
+
+                    </div>
+
+                    <div class="upload-zone">
+
+                        <div class="upload-icon">
+
+                            ☁
+
+                        </div>
+
+                        <p>
+                            Arraste sua planilha Excel aqui
+                        </p>
+
+                        <span>
+                            ou clique para selecionar
+                        </span>
+
+                    </div>
+
+                    <input
+                        type="file"
+                        id="fileInput"
+                    >
+
+                    <button
+                        class="primary-button"
+                        onclick="uploadFile()"
+                    >
+                        ANALISAR PLANILHA
+                    </button>
+
+                </section>
+
+                <!-- MODEL -->
+
+                <section class="card model-card">
+
+                    <div class="card-header">
+
+                        <h2>
+                            MODELO ECONOMÉTRICO
+                        </h2>
+
+                    </div>
+
+                    <div id="modelConfig">
+
+                        <div class="empty-state">
+
+                            Carregue uma planilha para configurar o modelo.
+
+                        </div>
+
+                    </div>
+
+                </section>
+
                 <!-- CHART -->
-                <!-- ====================================== -->
 
                 <section class="card chart-card">
 
                     <div class="card-header">
 
                         <h2>
-                            Real vs Predito
+                            TENDÊNCIA TEMPORAL
                         </h2>
 
                     </div>
@@ -448,79 +392,45 @@
 
                 </section>
 
-                <!-- ====================================== -->
-                <!-- COEFFICIENTS -->
-                <!-- ====================================== -->
+                <!-- ANALYTICS -->
 
-                <section class="card accordion-card">
+                <section class="card analytics-card">
 
-                    <div
-                        class="accordion-header"
-                        onclick="toggleAccordion('coefContent', this)"
-                    >
+                    <div class="card-header">
 
                         <h2>
-                            Coeficientes do Modelo
+                            ANÁLISES ESTATÍSTICAS
                         </h2>
 
-                        <span class="accordion-icon">
-                            ▼
-                        </span>
+                    </div>
+
+                    <div class="analysis-group">
+
+                        <button class="analysis-button">
+
+                            TENDÊNCIA CENTRAL
+
+                        </button>
+
+                        <button class="analysis-button">
+
+                            DISPERSÃO
+
+                        </button>
+
+                        <button class="analysis-button">
+
+                            POSIÇÃO
+
+                        </button>
 
                     </div>
 
-                    <div
-                        class="accordion-content collapsed"
-                        id="coefContent"
-                    >
+                    <div id="statisticsResults">
 
-                        <div id="coefficientsTable">
+                        <div class="empty-state">
 
-                            <div class="empty-state">
-
-                                Nenhum modelo executado.
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-                <!-- ====================================== -->
-                <!-- PREVIEW -->
-                <!-- ====================================== -->
-
-                <section class="card accordion-card">
-
-                    <div
-                        class="accordion-header"
-                        onclick="toggleAccordion('previewContent', this)"
-                    >
-
-                        <h2>
-                            Preview dos Dados
-                        </h2>
-
-                        <span class="accordion-icon">
-                            ▼
-                        </span>
-
-                    </div>
-
-                    <div
-                        class="accordion-content collapsed"
-                        id="previewContent"
-                    >
-
-                        <div id="previewTable">
-
-                            <div class="empty-state">
-
-                                Nenhum dataset carregado.
-
-                            </div>
+                            Nenhuma análise executada.
 
                         </div>
 
