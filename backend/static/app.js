@@ -1,8 +1,29 @@
 // ==========================================
-// MIDAS FINAL SYNC ENGINE
+// MIDAS REACTIVE MODEL ENGINE
 // ==========================================
 
-let uploadedData = null;
+// ==========================================
+// GLOBAL STATE
+// ==========================================
+
+const MIDAS_STATE = {
+
+    dataset: null,
+
+    selectedTarget: null,
+
+    selectedFeatures: [],
+
+    selectedTemporal: null,
+
+    modelResults: null,
+
+    statisticsResults: null
+};
+
+// ==========================================
+// CHART
+// ==========================================
 
 let predictionChart = null;
 
@@ -15,7 +36,7 @@ document.addEventListener(
 
     function () {
 
-        initializeSystem();
+        initializeMIDAS();
     }
 );
 
@@ -23,20 +44,9 @@ document.addEventListener(
 // INITIALIZE
 // ==========================================
 
-function initializeSystem() {
+function initializeMIDAS() {
 
-    const uploadButton =
-        document.getElementById(
-            "uploadButton"
-        );
-
-    if (uploadButton) {
-
-        uploadButton.addEventListener(
-            "click",
-            uploadFile
-        );
-    }
+    initializeUpload();
 
     initializeAnalyticsButtons();
 
@@ -67,7 +77,7 @@ function formatNumber(value) {
             "pt-BR",
             {
                 minimumFractionDigits: 2,
-                maximumFractionDigits: 2
+                maximumFractionDigits: 4
             }
         );
 }
@@ -91,7 +101,29 @@ function setText(id, value) {
 // UPLOAD
 // ==========================================
 
-async function uploadFile() {
+function initializeUpload() {
+
+    const button =
+        document.getElementById(
+            "uploadButton"
+        );
+
+    if (!button) {
+
+        return;
+    }
+
+    button.addEventListener(
+        "click",
+        uploadDataset
+    );
+}
+
+// ==========================================
+// UPLOAD DATASET
+// ==========================================
+
+async function uploadDataset() {
 
     const fileInput =
         document.getElementById(
@@ -121,6 +153,10 @@ async function uploadFile() {
         fileInput.files[0]
     );
 
+    showSystemStatus(
+        "Carregando dataset..."
+    );
+
     try {
 
         const response =
@@ -136,44 +172,73 @@ async function uploadFile() {
             await response.json();
 
         console.log(
-            "UPLOAD RESPONSE:",
+            "UPLOAD:",
             data
         );
 
         if (data.error) {
+
+            showSystemStatus(
+                "Erro no upload."
+            );
 
             alert(data.error);
 
             return;
         }
 
-        uploadedData = data;
+        MIDAS_STATE.dataset = data;
 
-        updateSummary(data);
+        initializeDatasetState(data);
+
+        updateSummaryRibbon(data);
 
         populateStatisticsVariable(data);
 
-        renderModelConfig(data);
+        renderModelWorkspace();
 
-        alert(
-            "Dataset carregado com sucesso."
+        showSystemStatus(
+            "Dataset carregado."
         );
 
     } catch (error) {
 
         console.error(error);
 
+        showSystemStatus(
+            "Falha operacional."
+        );
+
         alert(
-            "Erro no upload."
+            "Erro ao carregar dataset."
         );
     }
+}
+
+// ==========================================
+// INITIALIZE STATE
+// ==========================================
+
+function initializeDatasetState(data) {
+
+    const suggestions =
+        data.suggestions || {};
+
+    MIDAS_STATE.selectedTarget =
+        suggestions.target_variable;
+
+    MIDAS_STATE.selectedFeatures =
+        suggestions.features || [];
+
+    MIDAS_STATE.selectedTemporal =
+        suggestions.date_column;
 }
 
 // ==========================================
 // SUMMARY
 // ==========================================
 
-function updateSummary(data) {
+function updateSummaryRibbon(data) {
 
     if (!data.dataset_info) {
 
@@ -192,101 +257,43 @@ function updateSummary(data) {
 
     setText(
         "summaryNumeric",
-        data.numeric_columns?.length || 0
+        data.numeric_columns.length
     );
 
     setText(
         "summaryDatetime",
-        data.possible_time_columns?.length || 0
+        data.possible_time_columns.length
     );
 }
 
 // ==========================================
-// POPULATE STATISTICS
+// MODEL WORKSPACE
 // ==========================================
 
-function populateStatisticsVariable(data) {
-
-    const select =
-        document.getElementById(
-            "statisticsVariable"
-        );
-
-    if (!select) {
-
-        return;
-    }
-
-    select.innerHTML = "";
-
-    const numeric =
-        data.numeric_columns || [];
-
-    const defaultOption =
-        document.createElement(
-            "option"
-        );
-
-    defaultOption.value = "";
-
-    defaultOption.textContent =
-        "Selecione uma variável";
-
-    select.appendChild(
-        defaultOption
-    );
-
-    numeric.forEach(col => {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-        option.value = col;
-
-        option.textContent = col;
-
-        select.appendChild(option);
-    });
-}
-
-// ==========================================
-// MODEL CONFIG
-// ==========================================
-
-function renderModelConfig(data) {
+function renderModelWorkspace() {
 
     const container =
         document.getElementById(
             "modelConfig"
         );
 
-    if (!container) {
+    if (
+        !container
+        ||
+        !MIDAS_STATE.dataset
+    ) {
 
         return;
     }
+
+    const data =
+        MIDAS_STATE.dataset;
 
     const numeric =
         data.numeric_columns || [];
 
     const temporal =
         data.possible_time_columns || [];
-
-    if (numeric.length < 2) {
-
-        container.innerHTML = `
-
-            <div class="empty-state">
-
-                São necessárias pelo menos
-                duas variáveis numéricas.
-
-            </div>
-        `;
-
-        return;
-    }
 
     // ==========================================
     // TEMPORAL
@@ -298,7 +305,10 @@ function renderModelConfig(data) {
 
         temporalOptions += `
 
-            <option value="${col}">
+            <option
+                value="${col}"
+                ${MIDAS_STATE.selectedTemporal === col ? "selected" : ""}
+            >
 
                 ${col}
 
@@ -312,13 +322,13 @@ function renderModelConfig(data) {
 
     let targetOptions = "";
 
-    numeric.forEach((col, index) => {
+    numeric.forEach(col => {
 
         targetOptions += `
 
             <option
                 value="${col}"
-                ${index === 0 ? "selected" : ""}
+                ${MIDAS_STATE.selectedTarget === col ? "selected" : ""}
             >
 
                 ${col}
@@ -333,9 +343,11 @@ function renderModelConfig(data) {
 
     let featureOptions = "";
 
-    numeric.forEach((col, index) => {
+    numeric.forEach(col => {
 
-        if (index !== 0) {
+        if (
+            col !== MIDAS_STATE.selectedTarget
+        ) {
 
             featureOptions += `
 
@@ -344,7 +356,7 @@ function renderModelConfig(data) {
                     <input
                         type="checkbox"
                         value="${col}"
-                        checked
+                        ${MIDAS_STATE.selectedFeatures.includes(col) ? "checked" : ""}
                     >
 
                     ${col}
@@ -353,6 +365,99 @@ function renderModelConfig(data) {
             `;
         }
     });
+
+    // ==========================================
+    // MODEL RESULTS
+    // ==========================================
+
+    let resultsPanel = "";
+
+    if (MIDAS_STATE.modelResults) {
+
+        const model =
+            MIDAS_STATE.modelResults;
+
+        resultsPanel = `
+
+            <div class="model-results-panel">
+
+                <div class="results-grid">
+
+                    <div class="result-card">
+
+                        <div class="result-label">
+                            R²
+                        </div>
+
+                        <div class="result-value">
+
+                            ${formatNumber(model.r2)}
+
+                        </div>
+
+                    </div>
+
+                    <div class="result-card">
+
+                        <div class="result-label">
+                            RMSE
+                        </div>
+
+                        <div class="result-value">
+
+                            ${formatNumber(model.rmse)}
+
+                        </div>
+
+                    </div>
+
+                    <div class="result-card">
+
+                        <div class="result-label">
+                            MAE
+                        </div>
+
+                        <div class="result-value">
+
+                            ${formatNumber(model.mae)}
+
+                        </div>
+
+                    </div>
+
+                    <div class="result-card">
+
+                        <div class="result-label">
+                            OBSERVAÇÕES
+                        </div>
+
+                        <div class="result-value">
+
+                            ${model.observations}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="coefficients-panel">
+
+                    <h3>
+                        COEFICIENTES
+                    </h3>
+
+                    ${renderCoefficients(model.coefficients)}
+
+                </div>
+
+            </div>
+        `;
+    }
+
+    // ==========================================
+    // FINAL
+    // ==========================================
 
     container.innerHTML = `
 
@@ -416,11 +521,115 @@ function renderModelConfig(data) {
             DOWNLOAD RESULTADOS
 
         </button>
+
+        ${resultsPanel}
     `;
 
-    // ==========================================
-    // EVENTS
-    // ==========================================
+    initializeReactiveControls();
+}
+
+// ==========================================
+// COEFFICIENTS
+// ==========================================
+
+function renderCoefficients(coefficients) {
+
+    if (!coefficients) {
+
+        return "";
+    }
+
+    let html = "";
+
+    Object.entries(
+        coefficients
+    ).forEach(([key, value]) => {
+
+        html += `
+
+            <div class="coefficient-row">
+
+                <div class="coef-name">
+
+                    ${key}
+
+                </div>
+
+                <div class="coef-value">
+
+                    ${formatNumber(value)}
+
+                </div>
+
+            </div>
+        `;
+    });
+
+    return html;
+}
+
+// ==========================================
+// REACTIVE CONTROLS
+// ==========================================
+
+function initializeReactiveControls() {
+
+    const targetSelect =
+        document.getElementById(
+            "targetVariable"
+        );
+
+    if (targetSelect) {
+
+        targetSelect.addEventListener(
+            "change",
+
+            function () {
+
+                MIDAS_STATE.selectedTarget =
+                    this.value;
+
+                recalculateFeatures();
+
+                renderModelWorkspace();
+            }
+        );
+    }
+
+    const dateSelect =
+        document.getElementById(
+            "dateColumn"
+        );
+
+    if (dateSelect) {
+
+        dateSelect.addEventListener(
+            "change",
+
+            function () {
+
+                MIDAS_STATE.selectedTemporal =
+                    this.value;
+            }
+        );
+    }
+
+    const checkboxes =
+        document.querySelectorAll(
+            ".features-grid input"
+        );
+
+    checkboxes.forEach(box => {
+
+        box.addEventListener(
+            "change",
+
+            function () {
+
+                updateFeaturesState();
+            }
+        );
+    });
 
     const runButton =
         document.getElementById(
@@ -439,80 +648,93 @@ function renderModelConfig(data) {
 }
 
 // ==========================================
+// RECALCULATE FEATURES
+// ==========================================
+
+function recalculateFeatures() {
+
+    const numeric =
+        MIDAS_STATE.dataset
+        .numeric_columns;
+
+    MIDAS_STATE.selectedFeatures =
+        numeric.filter(
+
+            col =>
+            col !== MIDAS_STATE.selectedTarget
+        );
+}
+
+// ==========================================
+// UPDATE FEATURES
+// ==========================================
+
+function updateFeaturesState() {
+
+    const checked =
+        document.querySelectorAll(
+            ".features-grid input:checked"
+        );
+
+    MIDAS_STATE.selectedFeatures = [];
+
+    checked.forEach(item => {
+
+        MIDAS_STATE.selectedFeatures.push(
+            item.value
+        );
+    });
+}
+
+// ==========================================
 // RUN MODEL
 // ==========================================
 
 async function runModel() {
 
-    try {
+    if (!MIDAS_STATE.dataset) {
 
-        if (!uploadedData) {
-
-            alert(
-                "Carregue um dataset."
-            );
-
-            return;
-        }
-
-        const target =
-            document.getElementById(
-                "targetVariable"
-            )?.value;
-
-        const temporal =
-            document.getElementById(
-                "dateColumn"
-            )?.value;
-
-        const checked =
-            document.querySelectorAll(
-                ".features-grid input:checked"
-            );
-
-        let features = [];
-
-        checked.forEach(item => {
-
-            features.push(
-                item.value
-            );
-        });
-
-        if (!target) {
-
-            alert(
-                "Selecione variável alvo."
-            );
-
-            return;
-        }
-
-        if (features.length === 0) {
-
-            alert(
-                "Selecione ao menos uma variável explicativa."
-            );
-
-            return;
-        }
-
-        const payload = {
-
-            date_column:
-                temporal,
-
-            target_variable:
-                target,
-
-            features:
-                features
-        };
-
-        console.log(
-            "MODEL PAYLOAD:",
-            payload
+        alert(
+            "Carregue um dataset."
         );
+
+        return;
+    }
+
+    if (
+        MIDAS_STATE.selectedFeatures
+        .length === 0
+    ) {
+
+        alert(
+            "Selecione variáveis explicativas."
+        );
+
+        return;
+    }
+
+    showSystemStatus(
+        "Executando modelo..."
+    );
+
+    const payload = {
+
+        date_column:
+            MIDAS_STATE.selectedTemporal,
+
+        target_variable:
+            MIDAS_STATE.selectedTarget,
+
+        features:
+            MIDAS_STATE.selectedFeatures
+    };
+
+    console.log(
+        "MODEL PAYLOAD:",
+        payload
+    );
+
+    try {
 
         const response =
             await fetch(
@@ -541,18 +763,35 @@ async function runModel() {
 
         if (data.error) {
 
+            showSystemStatus(
+                "Erro operacional."
+            );
+
             alert(data.error);
 
             return;
         }
 
-        renderChart(
+        MIDAS_STATE.modelResults =
+            data.model_results;
+
+        renderModelWorkspace();
+
+        renderPredictionChart(
             data.model_results
+        );
+
+        showSystemStatus(
+            "Modelo executado."
         );
 
     } catch (error) {
 
         console.error(error);
+
+        showSystemStatus(
+            "Falha operacional."
+        );
 
         alert(
             "Erro ao executar modelo."
@@ -564,7 +803,7 @@ async function runModel() {
 // CHART
 // ==========================================
 
-function renderChart(results) {
+function renderPredictionChart(results) {
 
     const canvas =
         document.getElementById(
@@ -640,7 +879,52 @@ function renderChart(results) {
 }
 
 // ==========================================
-// ANALYTICS BUTTONS
+// STATISTICS
+// ==========================================
+
+function populateStatisticsVariable(data) {
+
+    const select =
+        document.getElementById(
+            "statisticsVariable"
+        );
+
+    if (!select) {
+
+        return;
+    }
+
+    select.innerHTML = "";
+
+    const option =
+        document.createElement(
+            "option"
+        );
+
+    option.value = "";
+
+    option.textContent =
+        "Selecione uma variável";
+
+    select.appendChild(option);
+
+    data.numeric_columns.forEach(col => {
+
+        const el =
+            document.createElement(
+                "option"
+            );
+
+        el.value = col;
+
+        el.textContent = col;
+
+        select.appendChild(el);
+    });
+}
+
+// ==========================================
+// ANALYTICS
 // ==========================================
 
 function initializeAnalyticsButtons() {
@@ -657,7 +941,7 @@ function initializeAnalyticsButtons() {
 
             async function () {
 
-                if (!uploadedData) {
+                if (!MIDAS_STATE.dataset) {
 
                     alert(
                         "Carregue um dataset."
@@ -680,12 +964,12 @@ function initializeAnalyticsButtons() {
                     return;
                 }
 
-                const analysisType =
+                const analysis =
                     this.dataset.analysis;
 
-                await runVariableAnalysis(
+                await runAnalysis(
                     variable,
-                    analysisType
+                    analysis
                 );
             }
         );
@@ -693,29 +977,19 @@ function initializeAnalyticsButtons() {
 }
 
 // ==========================================
-// VARIABLE ANALYSIS
+// RUN ANALYSIS
 // ==========================================
 
-async function runVariableAnalysis(
+async function runAnalysis(
     variable,
-    analysisType
+    analysis
 ) {
 
+    showSystemStatus(
+        "Executando análise..."
+    );
+
     try {
-
-        const payload = {
-
-            variable:
-                variable,
-
-            analysis_type:
-                analysisType
-        };
-
-        console.log(
-            "ANALYSIS PAYLOAD:",
-            payload
-        );
 
         const response =
             await fetch(
@@ -728,9 +1002,14 @@ async function runVariableAnalysis(
                             "application/json"
                     },
 
-                    body: JSON.stringify(
-                        payload
-                    )
+                    body: JSON.stringify({
+
+                        variable:
+                            variable,
+
+                        analysis_type:
+                            analysis
+                    })
                 }
             );
 
@@ -738,24 +1017,39 @@ async function runVariableAnalysis(
             await response.json();
 
         console.log(
-            "ANALYSIS RESPONSE:",
+            "ANALYSIS:",
             data
         );
 
         if (data.error) {
+
+            showSystemStatus(
+                "Erro na análise."
+            );
 
             alert(data.error);
 
             return;
         }
 
+        MIDAS_STATE.statisticsResults =
+            data;
+
         renderStatistics(data);
 
         loadAnalyticsHistory();
 
+        showSystemStatus(
+            "Análise concluída."
+        );
+
     } catch (error) {
 
         console.error(error);
+
+        showSystemStatus(
+            "Falha operacional."
+        );
 
         alert(
             "Erro na análise."
@@ -764,7 +1058,7 @@ async function runVariableAnalysis(
 }
 
 // ==========================================
-// STATISTICS
+// RENDER STATISTICS
 // ==========================================
 
 function renderStatistics(data) {
@@ -787,6 +1081,14 @@ function renderStatistics(data) {
     Object.entries(
         data.results
     ).forEach(([key, value]) => {
+
+        if (
+            typeof value === "object"
+        ) {
+
+            value =
+                JSON.stringify(value);
+        }
 
         html += `
 
@@ -908,7 +1210,7 @@ async function loadAnalyticsHistory() {
         const data =
             await response.json();
 
-        renderAnalyticsHistory(
+        renderHistory(
             data.history || []
         );
 
@@ -922,7 +1224,7 @@ async function loadAnalyticsHistory() {
 // RENDER HISTORY
 // ==========================================
 
-function renderAnalyticsHistory(history) {
+function renderHistory(history) {
 
     const container =
         document.getElementById(
@@ -999,4 +1301,22 @@ function renderAnalyticsHistory(history) {
     });
 
     container.innerHTML = html;
+}
+
+// ==========================================
+// STATUS
+// ==========================================
+
+function showSystemStatus(message) {
+
+    const status =
+        document.querySelector(
+            ".status-live"
+        );
+
+    if (status) {
+
+        status.innerText =
+            `● ${message.toUpperCase()}`;
+    }
 }
