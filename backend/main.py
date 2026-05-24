@@ -27,6 +27,10 @@ from analytics.position import (
     calculate_position
 )
 
+from analytics.shape import (
+    calculate_shape
+)
+
 # ==========================================
 # LIBS
 # ==========================================
@@ -368,6 +372,10 @@ async def variable_analysis(
             variable
         ]
 
+        # ==========================================
+        # ANALYTICS ROUTER
+        # ==========================================
+
         if analysis_type == "central_tendency":
 
             results = (
@@ -388,6 +396,14 @@ async def variable_analysis(
 
             results = (
                 calculate_position(
+                    series
+                )
+            )
+
+        elif analysis_type == "shape":
+
+            results = (
+                calculate_shape(
                     series
                 )
             )
