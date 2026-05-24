@@ -63,6 +63,28 @@ async def root():
     )
 
 # ==========================================
+# ECONOMETRICS
+# ==========================================
+
+@app.get("/econometrics")
+async def econometrics():
+
+    return FileResponse(
+        STATIC_DIR / "econometrics.html"
+    )
+
+# ==========================================
+# STATISTICS
+# ==========================================
+
+@app.get("/statistics")
+async def statistics():
+
+    return FileResponse(
+        STATIC_DIR / "statistics.html"
+    )
+
+# ==========================================
 # REQUEST MODELS
 # ==========================================
 
@@ -136,12 +158,26 @@ async def upload_file(
                 pass
 
         # ======================================
-        # ANALYSIS
+        # COLUMN ANALYSIS
         # ======================================
 
         columns_analysis = []
 
         for col in df.columns:
+
+            dtype = str(df[col].dtype)
+
+            if "float" in dtype or "int" in dtype:
+
+                detected = "numeric"
+
+            elif "datetime" in dtype:
+
+                detected = "temporal"
+
+            else:
+
+                detected = "categorical"
 
             columns_analysis.append({
 
@@ -149,7 +185,7 @@ async def upload_file(
                     col,
 
                 "detected_type":
-                    str(df[col].dtype),
+                    detected,
 
                 "missing_values":
                     int(df[col].isna().sum()),
@@ -179,6 +215,10 @@ async def upload_file(
             if possible_time_columns
             else None
         )
+
+        # ======================================
+        # RESPONSE
+        # ======================================
 
         return {
 
@@ -320,6 +360,10 @@ async def run_model(
             future_predictions.append(
                 pred
             )
+
+            # ==================================
+            # RECURSIVE UPDATE
+            # ==================================
 
             if len(last_row) > 0:
 
@@ -470,7 +514,7 @@ async def run_model(
         }
 
 # ==========================================
-# ANALYSIS
+# VARIABLE ANALYSIS
 # ==========================================
 
 @app.post("/variable-analysis")
@@ -497,6 +541,10 @@ async def variable_analysis(
 
         results = {}
 
+        # ======================================
+        # CENTRAL TENDENCY
+        # ======================================
+
         if request.analysis_type == "central_tendency":
 
             results = {
@@ -510,6 +558,10 @@ async def variable_analysis(
                 "mode":
                     float(series.mode().iloc[0])
             }
+
+        # ======================================
+        # DISPERSION
+        # ======================================
 
         elif request.analysis_type == "dispersion":
 
@@ -527,6 +579,10 @@ async def variable_analysis(
                         - series.min()
                     )
             }
+
+        # ======================================
+        # POSITION
+        # ======================================
 
         elif request.analysis_type == "position":
 
@@ -548,6 +604,10 @@ async def variable_analysis(
                     )
             }
 
+        # ======================================
+        # SHAPE
+        # ======================================
+
         elif request.analysis_type == "shape":
 
             results = {
@@ -558,6 +618,10 @@ async def variable_analysis(
                 "kurtosis":
                     float(series.kurtosis())
             }
+
+        # ======================================
+        # TEMPORAL
+        # ======================================
 
         elif request.analysis_type == "temporal":
 
@@ -575,6 +639,10 @@ async def variable_analysis(
                         )[0]
                     )
             }
+
+        # ======================================
+        # INSIGHTS
+        # ======================================
 
         insights = []
 
@@ -597,6 +665,10 @@ async def variable_analysis(
                 "severity":
                     severity
             })
+
+        # ======================================
+        # HISTORY
+        # ======================================
 
         ANALYTICS_HISTORY.append({
 
@@ -633,7 +705,7 @@ async def variable_analysis(
         }
 
 # ==========================================
-# HISTORY
+# ANALYTICS HISTORY
 # ==========================================
 
 @app.get("/analytics-history")
@@ -646,7 +718,7 @@ async def analytics_history():
     }
 
 # ==========================================
-# DOWNLOAD
+# DOWNLOAD PREDICTIONS
 # ==========================================
 
 @app.get("/download-predictions")
