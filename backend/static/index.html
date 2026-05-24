@@ -68,6 +68,10 @@
                     </button>
 
                     <button class="menu-item">
+                        Estatística
+                    </button>
+
+                    <button class="menu-item">
                         Resultados
                     </button>
 
@@ -250,6 +254,102 @@
                             >
                                 -
                             </span>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- ====================================== -->
+                <!-- UNIVARIATE ANALYSIS -->
+                <!-- ====================================== -->
+
+                <section class="card metrics-card">
+
+                    <div class="card-header">
+
+                        <h2>
+                            Análise Estatística Univariada
+                        </h2>
+
+                    </div>
+
+                    <div class="univariate-grid">
+
+                        <!-- VARIABLE -->
+
+                        <div class="config-box">
+
+                            <label>
+                                Variável
+                            </label>
+
+                            <select id="univariateVariable">
+
+                                <option value="">
+                                    Selecione
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                        <!-- TYPE -->
+
+                        <div class="config-box">
+
+                            <label>
+                                Grupo Estatístico
+                            </label>
+
+                            <select id="analysisType">
+
+                                <option value="central_tendency">
+                                    Tendência Central
+                                </option>
+
+                                <option value="dispersion">
+                                    Dispersão
+                                </option>
+
+                                <option value="position">
+                                    Separatrizes
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                        <!-- BUTTON -->
+
+                        <div class="config-box">
+
+                            <label>
+                                Executar
+                            </label>
+
+                            <button
+                                class="primary-button"
+                                onclick="runVariableAnalysis()"
+                            >
+                                Analisar Série
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <!-- RESULTS -->
+
+                    <div
+                        class="statistics-results"
+                        id="statisticsResults"
+                    >
+
+                        <div class="empty-state">
+
+                            Selecione uma variável para iniciar a análise.
 
                         </div>
 
