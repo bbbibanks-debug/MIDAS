@@ -17,6 +17,15 @@ import uvicorn
 
 from datetime import datetime
 from typing import List
+from pathlib import Path
+
+# ==========================================
+# PATHS
+# ==========================================
+
+BASE_DIR = Path(__file__).resolve().parent
+
+STATIC_DIR = BASE_DIR / "static"
 
 # ==========================================
 # APP
@@ -25,12 +34,12 @@ from typing import List
 app = FastAPI()
 
 # ==========================================
-# STATIC
+# STATIC FILES
 # ==========================================
 
 app.mount(
     "/static",
-    StaticFiles(directory="backend/static"),
+    StaticFiles(directory=STATIC_DIR),
     name="static"
 )
 
@@ -50,7 +59,7 @@ ANALYTICS_HISTORY = []
 async def root():
 
     return FileResponse(
-        "backend/static/index.html"
+        STATIC_DIR / "index.html"
     )
 
 # ==========================================
@@ -85,7 +94,7 @@ async def upload_file(
         filename = file.filename.lower()
 
         # ======================================
-        # LOAD DATASET
+        # LOAD FILE
         # ======================================
 
         if filename.endswith(".csv"):
@@ -99,7 +108,7 @@ async def upload_file(
         DATAFRAME = df.copy()
 
         # ======================================
-        # NUMERIC COLUMNS
+        # NUMERIC
         # ======================================
 
         numeric_columns = (
@@ -127,7 +136,7 @@ async def upload_file(
                 pass
 
         # ======================================
-        # COLUMN ANALYSIS
+        # ANALYSIS
         # ======================================
 
         columns_analysis = []
@@ -170,10 +179,6 @@ async def upload_file(
             if possible_time_columns
             else None
         )
-
-        # ======================================
-        # RESPONSE
-        # ======================================
 
         return {
 
@@ -240,10 +245,6 @@ async def run_model(
 
         df = DATAFRAME.copy()
 
-        # ======================================
-        # REQUIRED COLUMNS
-        # ======================================
-
         required_cols = (
             [request.target_variable]
             + request.features
@@ -252,10 +253,6 @@ async def run_model(
         df = df.dropna(
             subset=required_cols
         )
-
-        # ======================================
-        # X / Y
-        # ======================================
 
         X = df[request.features]
         y = df[request.target_variable]
@@ -289,7 +286,7 @@ async def run_model(
         )
 
         # ======================================
-        # FORECAST ENGINE
+        # FORECAST
         # ======================================
 
         forecast_horizon = (
@@ -304,7 +301,7 @@ async def run_model(
 
         future_predictions = []
 
-        for step in range(
+        for _ in range(
             forecast_horizon
         ):
 
@@ -323,10 +320,6 @@ async def run_model(
             future_predictions.append(
                 pred
             )
-
-            # ==================================
-            # RECURSIVE UPDATE
-            # ==================================
 
             if len(last_row) > 0:
 
@@ -403,7 +396,7 @@ async def run_model(
             )
 
         # ======================================
-        # SAVE PREDICTIONS
+        # SAVE
         # ======================================
 
         LAST_PREDICTIONS = pd.DataFrame({
@@ -504,10 +497,6 @@ async def variable_analysis(
 
         results = {}
 
-        # ======================================
-        # CENTRAL TENDENCY
-        # ======================================
-
         if request.analysis_type == "central_tendency":
 
             results = {
@@ -521,10 +510,6 @@ async def variable_analysis(
                 "mode":
                     float(series.mode().iloc[0])
             }
-
-        # ======================================
-        # DISPERSION
-        # ======================================
 
         elif request.analysis_type == "dispersion":
 
@@ -542,10 +527,6 @@ async def variable_analysis(
                         - series.min()
                     )
             }
-
-        # ======================================
-        # POSITION
-        # ======================================
 
         elif request.analysis_type == "position":
 
@@ -567,10 +548,6 @@ async def variable_analysis(
                     )
             }
 
-        # ======================================
-        # SHAPE
-        # ======================================
-
         elif request.analysis_type == "shape":
 
             results = {
@@ -581,10 +558,6 @@ async def variable_analysis(
                 "kurtosis":
                     float(series.kurtosis())
             }
-
-        # ======================================
-        # TEMPORAL
-        # ======================================
 
         elif request.analysis_type == "temporal":
 
@@ -602,10 +575,6 @@ async def variable_analysis(
                         )[0]
                     )
             }
-
-        # ======================================
-        # INSIGHTS
-        # ======================================
 
         insights = []
 
@@ -628,10 +597,6 @@ async def variable_analysis(
                 "severity":
                     severity
             })
-
-        # ======================================
-        # HISTORY
-        # ======================================
 
         ANALYTICS_HISTORY.append({
 
