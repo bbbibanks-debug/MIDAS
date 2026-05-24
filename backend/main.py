@@ -1,52 +1,23 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-
 from pydantic import BaseModel
-
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import (
-    r2_score,
-    mean_absolute_error,
-    mean_squared_error
-)
-
-# ==========================================
-# ANALYTICS
-# ==========================================
-
-from analytics.central_tendency import (
-    calculate_central_tendency
-)
-
-from analytics.dispersion import (
-    calculate_dispersion
-)
-
-from analytics.position import (
-    calculate_position
-)
-
-from analytics.shape import (
-    calculate_shape
-)
-
-from analytics.moving_averages import (
-    calculate_temporal_analytics
-)
-
-from analytics.insights import (
-    generate_insights
-)
-
-# ==========================================
-# LIBS
-# ==========================================
 
 import pandas as pd
 import numpy as np
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import (
+    mean_squared_error,
+    mean_absolute_error,
+    r2_score
+)
+
+import uvicorn
 import os
-import re
+import json
+from datetime import datetime
+from typing import List
 
 # ==========================================
 # APP
@@ -55,50 +26,38 @@ import re
 app = FastAPI()
 
 # ==========================================
-# GLOBALS
-# ==========================================
-
-uploaded_df = None
-
-last_predictions_df = None
-
-analytics_history = []
-
-# ==========================================
-# PATHS
-# ==========================================
-
-BASE_DIR = os.path.dirname(
-    os.path.abspath(__file__)
-)
-
-STATIC_DIR = os.path.join(
-    BASE_DIR,
-    "static"
-)
-
-UPLOAD_FOLDER = os.path.join(
-    BASE_DIR,
-    "uploads"
-)
-
-os.makedirs(
-    UPLOAD_FOLDER,
-    exist_ok=True
-)
-
-# ==========================================
 # STATIC
 # ==========================================
 
 app.mount(
     "/static",
-    StaticFiles(directory=STATIC_DIR),
+    StaticFiles(directory="backend/static"),
     name="static"
 )
 
 # ==========================================
-# REQUESTS
+# GLOBAL STORAGE
+# ==========================================
+
+DATAFRAME = None
+
+LAST_PREDICTIONS = None
+
+ANALYTICS_HISTORY = []
+
+# ==========================================
+# ROOT
+# ==========================================
+
+@app.get("/")
+async def root():
+
+    return FileResponse(
+        "backend/static/index.html"
+    )
+
+# ==========================================
+# MODELS
 # ==========================================
 
 class ModelRequest(BaseModel):
@@ -107,324 +66,128 @@ class ModelRequest(BaseModel):
 
     target_variable: str
 
-    features: list[str]
+    features: List[str]
 
-class VariableAnalysisRequest(BaseModel):
+    forecast_horizon: int = 3
+
+class AnalysisRequest(BaseModel):
 
     variable: str
 
     analysis_type: str
 
 # ==========================================
-# HOME
-# ==========================================
-
-@app.get("/")
-async def home():
-
-    return FileResponse(
-        os.path.join(
-            STATIC_DIR,
-            "index.html"
-        )
-    )
-
-# ==========================================
-# HELPERS
-# ==========================================
-
-def safe_float(value):
-
-    try:
-
-        return round(
-            float(value),
-            4
-        )
-
-    except:
-
-        return None
-
-# ==========================================
-# SERIALIZE
-# ==========================================
-
-def serialize_results(results):
-
-    serialized = {}
-
-    for key, value in results.items():
-
-        if isinstance(
-            value,
-            (
-                np.integer,
-                np.floating
-            )
-        ):
-
-            serialized[key] = (
-                float(value)
-            )
-
-        elif isinstance(
-            value,
-            np.ndarray
-        ):
-
-            serialized[key] = (
-                value.tolist()
-            )
-
-        else:
-
-            serialized[key] = value
-
-    return serialized
-
-# ==========================================
-# SAVE HISTORY
-# ==========================================
-
-def save_analysis_history(
-
-    variable,
-    analysis_type,
-    results,
-    insights
-
-):
-
-    global analytics_history
-
-    analytics_history.insert(
-        0,
-        {
-
-            "variable":
-                variable,
-
-            "analysis_type":
-                analysis_type,
-
-            "results":
-                serialize_results(
-                    results
-                ),
-
-            "insights":
-                insights,
-
-            "timestamp":
-                pd.Timestamp.now()
-                .strftime(
-                    "%d/%m/%Y %H:%M:%S"
-                )
-        }
-    )
-
-    analytics_history = (
-        analytics_history[:20]
-    )
-
-# ==========================================
-# DETECT TYPE
-# ==========================================
-
-def detect_column_type(series):
-
-    clean = series.dropna()
-
-    if len(clean) == 0:
-
-        return "unknown"
-
-    if pd.api.types.is_numeric_dtype(clean):
-
-        return "numeric"
-
-    sample = (
-        clean
-        .astype(str)
-        .head(20)
-    )
-
-    patterns = [
-
-        r"^\d{4}$",
-        r"^\d{4}-\d{2}$",
-        r"^\d{4}/\d{2}$",
-        r"^\d{4}Q[1-4]$"
-    ]
-
-    matches = 0
-
-    for value in sample:
-
-        for pattern in patterns:
-
-            if re.match(pattern, value):
-
-                matches += 1
-
-                break
-
-    ratio = matches / len(sample)
-
-    if ratio > 0.5:
-
-        return "datetime"
-
-    return "categorical"
-
-# ==========================================
-# HISTORY
-# ==========================================
-
-@app.get("/analytics-history")
-async def analytics_history_route():
-
-    return {
-
-        "history":
-            analytics_history
-    }
-
-# ==========================================
 # UPLOAD
 # ==========================================
 
 @app.post("/upload")
-async def upload_excel(
+async def upload_file(
     file: UploadFile = File(...)
 ):
 
+    global DATAFRAME
+
     try:
 
-        global uploaded_df
+        filename =
+            file.filename.lower()
 
-        file_path = os.path.join(
-            UPLOAD_FOLDER,
-            file.filename
-        )
+        if filename.endswith(".csv"):
 
-        with open(
-            file_path,
-            "wb"
-        ) as buffer:
+            df =
+                pd.read_csv(file.file)
 
-            buffer.write(
-                await file.read()
-            )
+        else:
 
-        df = pd.read_excel(
-            file_path
-        )
+            df =
+                pd.read_excel(file.file)
 
-        # ==========================================
-        # FALLBACK INDEX
-        # ==========================================
+        DATAFRAME = df.copy()
 
-        df["__index__"] = (
-            np.arange(len(df))
-        )
+        # ======================================
+        # NUMERIC
+        # ======================================
 
-        uploaded_df = df.copy()
+        numeric_columns =
+            df.select_dtypes(
+                include=np.number
+            ).columns.tolist()
 
-        numeric_columns = []
+        # ======================================
+        # TIME
+        # ======================================
 
-        temporal_columns = []
+        possible_time_columns = []
+
+        for col in df.columns:
+
+            try:
+
+                pd.to_datetime(df[col])
+
+                possible_time_columns.append(col)
+
+            except:
+
+                pass
+
+        # ======================================
+        # ANALYSIS
+        # ======================================
 
         columns_analysis = []
 
         for col in df.columns:
 
-            if col == "__index__":
-
-                continue
-
-            detected_type = (
-                detect_column_type(
-                    df[col]
-                )
-            )
-
-            if detected_type == "numeric":
-
-                numeric_columns.append(
-                    str(col)
-                )
-
-            if detected_type in [
-                "datetime",
-                "categorical"
-            ]:
-
-                temporal_columns.append(
-                    str(col)
-                )
-
             columns_analysis.append({
 
                 "name":
-                    str(col),
+                    col,
 
                 "detected_type":
-                    detected_type,
+                    str(df[col].dtype),
 
                 "missing_values":
-                    int(
-                        df[col]
-                        .isnull()
-                        .sum()
-                    ),
+                    int(df[col].isna().sum()),
 
                 "unique_values":
-                    int(
-                        df[col]
-                        .nunique()
-                    )
+                    int(df[col].nunique())
             })
 
-        if len(temporal_columns) == 0:
+        # ======================================
+        # SUGGESTIONS
+        # ======================================
 
-            temporal_columns.append(
-                "__index__"
-            )
+        target =
+            numeric_columns[0] \
+            if numeric_columns else None
 
-        target_variable = None
+        features =
+            numeric_columns[1:] \
+            if len(numeric_columns) > 1 \
+            else []
 
-        if len(numeric_columns) > 0:
-
-            target_variable = (
-                numeric_columns[0]
-            )
-
-        features = []
-
-        for col in numeric_columns:
-
-            if col != target_variable:
-
-                features.append(col)
+        date_column =
+            possible_time_columns[0] \
+            if possible_time_columns \
+            else None
 
         return {
 
             "dataset_info": {
 
                 "rows":
-                    int(len(df)),
+                    int(df.shape[0]),
 
                 "columns":
-                    int(len(df.columns) - 1)
+                    int(df.shape[1])
             },
 
             "numeric_columns":
                 numeric_columns,
 
             "possible_time_columns":
-                temporal_columns,
+                possible_time_columns,
 
             "columns_analysis":
                 columns_analysis,
@@ -432,10 +195,10 @@ async def upload_excel(
             "suggestions": {
 
                 "date_column":
-                    temporal_columns[0],
+                    date_column,
 
                 "target_variable":
-                    target_variable,
+                    target,
 
                 "features":
                     features
@@ -451,116 +214,410 @@ async def upload_excel(
         }
 
 # ==========================================
-# VARIABLE ANALYSIS
+# RUN MODEL
 # ==========================================
 
-@app.post("/variable-analysis")
-async def variable_analysis(
-    request: VariableAnalysisRequest
+@app.post("/run-model")
+async def run_model(
+    request: ModelRequest
 ):
+
+    global DATAFRAME
+    global LAST_PREDICTIONS
 
     try:
 
-        global uploaded_df
-
-        if uploaded_df is None:
+        if DATAFRAME is None:
 
             return {
                 "error":
                     "Nenhum dataset carregado."
             }
 
-        variable = request.variable
+        df = DATAFRAME.copy()
 
-        analysis_type = request.analysis_type
+        # ======================================
+        # CLEAN
+        # ======================================
 
-        if variable not in uploaded_df.columns:
+        required_cols = [
+            request.target_variable
+        ] + request.features
 
-            return {
-                "error":
-                    "Variável não encontrada."
-            }
+        df =
+            df.dropna(
+                subset=required_cols
+            )
 
-        series = uploaded_df[
-            variable
-        ]
+        # ======================================
+        # X Y
+        # ======================================
 
-        # ==========================================
-        # ANALYSIS
-        # ==========================================
+        X =
+            df[request.features]
 
-        if analysis_type == "central_tendency":
+        y =
+            df[request.target_variable]
 
-            results = (
-                calculate_central_tendency(
-                    series
+        # ======================================
+        # MODEL
+        # ======================================
+
+        model =
+            LinearRegression()
+
+        model.fit(X, y)
+
+        predictions =
+            model.predict(X)
+
+        # ======================================
+        # METRICS
+        # ======================================
+
+        r2 =
+            r2_score(y, predictions)
+
+        rmse =
+            np.sqrt(
+                mean_squared_error(
+                    y,
+                    predictions
                 )
             )
 
-        elif analysis_type == "dispersion":
-
-            results = (
-                calculate_dispersion(
-                    series
-                )
+        mae =
+            mean_absolute_error(
+                y,
+                predictions
             )
 
-        elif analysis_type == "position":
+        # ======================================
+        # FORECAST
+        # ======================================
 
-            results = (
-                calculate_position(
-                    series
-                )
+        forecast_horizon =
+            request.forecast_horizon
+
+        last_row =
+            X.iloc[-1].copy()
+
+        future_predictions = []
+
+        for _ in range(forecast_horizon):
+
+            pred =
+                model.predict(
+                    [last_row]
+                )[0]
+
+            future_predictions.append(
+                float(pred)
             )
 
-        elif analysis_type == "shape":
+        # ======================================
+        # FUTURE DATES
+        # ======================================
 
-            results = (
-                calculate_shape(
-                    series
-                )
-            )
+        future_dates = []
 
-        elif analysis_type == "temporal":
+        if request.date_column:
 
-            results = (
-                calculate_temporal_analytics(
-                    series
-                )
-            )
+            try:
+
+                time_series =
+                    pd.to_datetime(
+                        df[request.date_column]
+                    )
+
+                last_date =
+                    time_series.iloc[-1]
+
+                for i in range(
+                    1,
+                    forecast_horizon + 1
+                ):
+
+                    next_date =
+                        last_date + pd.DateOffset(
+                            months=i
+                        )
+
+                    future_dates.append(
+                        str(next_date.date())
+                    )
+
+            except:
+
+                for i in range(
+                    1,
+                    forecast_horizon + 1
+                ):
+
+                    future_dates.append(
+                        f"T+{i}"
+                    )
 
         else:
 
-            return {
-                "error":
-                    "Tipo de análise inválido."
-            }
+            for i in range(
+                1,
+                forecast_horizon + 1
+            ):
 
-        results = serialize_results(
-            results
-        )
+                future_dates.append(
+                    f"T+{i}"
+                )
 
-        insights = (
-            generate_insights(
-                results
+        # ======================================
+        # COEFFICIENTS
+        # ======================================
+
+        coefficients = {}
+
+        for idx, feature in enumerate(
+            request.features
+        ):
+
+            coefficients[feature] = float(
+                model.coef_[idx]
             )
-        )
 
-        save_analysis_history(
+        # ======================================
+        # SAVE
+        # ======================================
 
-            variable,
-            analysis_type,
-            results,
-            insights
-        )
+        LAST_PREDICTIONS = pd.DataFrame({
+
+            "actual":
+                y,
+
+            "predicted":
+                predictions
+        })
+
+        # ======================================
+        # RESPONSE
+        # ======================================
 
         return {
 
+            "model_results": {
+
+                "r2":
+                    float(r2),
+
+                "rmse":
+                    float(rmse),
+
+                "mae":
+                    float(mae),
+
+                "observations":
+                    int(len(df)),
+
+                "coefficients":
+                    coefficients,
+
+                "actual_values":
+                    y.tolist(),
+
+                "predicted_values":
+                    predictions.tolist(),
+
+                "time_values":
+                    df[request.date_column]
+                    .astype(str)
+                    .tolist()
+                    if request.date_column
+                    else list(
+                        range(len(df))
+                    ),
+
+                "future_predictions":
+                    future_predictions,
+
+                "future_dates":
+                    future_dates,
+
+                "forecast_horizon":
+                    forecast_horizon
+            }
+        }
+
+    except Exception as e:
+
+        return {
+
+            "error":
+                str(e)
+        }
+
+# ==========================================
+# ANALYSIS
+# ==========================================
+
+@app.post("/variable-analysis")
+async def variable_analysis(
+    request: AnalysisRequest
+):
+
+    global DATAFRAME
+    global ANALYTICS_HISTORY
+
+    try:
+
+        if DATAFRAME is None:
+
+            return {
+                "error":
+                    "Nenhum dataset carregado."
+            }
+
+        series =
+            DATAFRAME[
+                request.variable
+            ].dropna()
+
+        results = {}
+
+        # ======================================
+        # CENTRAL
+        # ======================================
+
+        if request.analysis_type == "central_tendency":
+
+            results = {
+
+                "mean":
+                    float(series.mean()),
+
+                "median":
+                    float(series.median()),
+
+                "mode":
+                    float(series.mode().iloc[0])
+            }
+
+        # ======================================
+        # DISPERSION
+        # ======================================
+
+        elif request.analysis_type == "dispersion":
+
+            results = {
+
+                "std":
+                    float(series.std()),
+
+                "variance":
+                    float(series.var()),
+
+                "range":
+                    float(series.max() - series.min())
+            }
+
+        # ======================================
+        # POSITION
+        # ======================================
+
+        elif request.analysis_type == "position":
+
+            results = {
+
+                "q1":
+                    float(series.quantile(0.25)),
+
+                "q2":
+                    float(series.quantile(0.50)),
+
+                "q3":
+                    float(series.quantile(0.75))
+            }
+
+        # ======================================
+        # SHAPE
+        # ======================================
+
+        elif request.analysis_type == "shape":
+
+            results = {
+
+                "skewness":
+                    float(series.skew()),
+
+                "kurtosis":
+                    float(series.kurtosis())
+            }
+
+        # ======================================
+        # TEMPORAL
+        # ======================================
+
+        elif request.analysis_type == "temporal":
+
+            results = {
+
+                "autocorrelation":
+                    float(series.autocorr()),
+
+                "trend":
+                    float(
+                        np.polyfit(
+                            range(len(series)),
+                            series,
+                            1
+                        )[0]
+                    )
+            }
+
+        # ======================================
+        # INSIGHTS
+        # ======================================
+
+        insights = []
+
+        for key, value in results.items():
+
+            severity = "info"
+
+            if abs(value) > 10:
+
+                severity = "warning"
+
+            insights.append({
+
+                "title":
+                    key.upper(),
+
+                "message":
+                    f"{key} calculado: {round(value, 4)}",
+
+                "severity":
+                    severity
+            })
+
+        # ======================================
+        # HISTORY
+        # ======================================
+
+        ANALYTICS_HISTORY.append({
+
+            "timestamp":
+                datetime.now()
+                .strftime("%Y-%m-%d %H:%M:%S"),
+
             "variable":
-                variable,
+                request.variable,
 
             "analysis_type":
-                analysis_type,
+                request.analysis_type,
+
+            "insights":
+                insights
+        })
+
+        return {
 
             "results":
                 results,
@@ -578,213 +635,17 @@ async def variable_analysis(
         }
 
 # ==========================================
-# MODEL
+# HISTORY
 # ==========================================
 
-@app.post("/run-model")
-async def run_model(
-    request: ModelRequest
-):
+@app.get("/analytics-history")
+async def analytics_history():
 
-    try:
+    return {
 
-        global uploaded_df
-        global last_predictions_df
-
-        if uploaded_df is None:
-
-            return {
-
-                "error":
-                    "Nenhum dataset carregado."
-            }
-
-        target = request.target_variable
-
-        features = request.features
-
-        date_column = request.date_column
-
-        # ==========================================
-        # FALLBACK
-        # ==========================================
-
-        if (
-            date_column
-            not in uploaded_df.columns
-        ):
-
-            date_column = "__index__"
-
-        if target not in uploaded_df.columns:
-
-            return {
-
-                "error":
-                    "Variável alvo inválida."
-            }
-
-        valid_features = []
-
-        for feature in features:
-
-            if (
-                feature in uploaded_df.columns
-                and feature != target
-            ):
-
-                valid_features.append(
-                    feature
-                )
-
-        if len(valid_features) == 0:
-
-            return {
-
-                "error":
-                    "Nenhuma variável explicativa válida."
-            }
-
-        model_df = uploaded_df[
-
-            [date_column]
-            +
-            [target]
-            +
-            valid_features
-
-        ].dropna()
-
-        if len(model_df) < 3:
-
-            return {
-
-                "error":
-                    "Poucos dados para regressão."
-            }
-
-        X = model_df[
-            valid_features
-        ]
-
-        y = model_df[
-            target
-        ]
-
-        model = LinearRegression()
-
-        model.fit(X, y)
-
-        predictions = (
-            model.predict(X)
-        )
-
-        # ==========================================
-        # EXPORT
-        # ==========================================
-
-        export_df = pd.DataFrame({
-
-            "Tempo":
-                model_df[
-                    date_column
-                ].astype(str),
-
-            "Valor_Real":
-                y.astype(float),
-
-            "Valor_Predito":
-                predictions.astype(float)
-        })
-
-        last_predictions_df = export_df
-
-        # ==========================================
-        # METRICS
-        # ==========================================
-
-        r2 = r2_score(
-            y,
-            predictions
-        )
-
-        mae = mean_absolute_error(
-            y,
-            predictions
-        )
-
-        rmse = np.sqrt(
-            mean_squared_error(
-                y,
-                predictions
-            )
-        )
-
-        coefficients = {}
-
-        for feature, coef in zip(
-            valid_features,
-            model.coef_
-        ):
-
-            coefficients[
-                feature
-            ] = safe_float(coef)
-
-        return {
-
-            "model_results": {
-
-                "observations":
-                    int(
-                        len(model_df)
-                    ),
-
-                "r2":
-                    safe_float(r2),
-
-                "mae":
-                    safe_float(mae),
-
-                "rmse":
-                    safe_float(rmse),
-
-                "intercept":
-                    safe_float(
-                        model.intercept_
-                    ),
-
-                "coefficients":
-                    coefficients,
-
-                "time_values":
-                    list(
-                        model_df[
-                            date_column
-                        ].astype(str)
-                    ),
-
-                "actual_values":
-                    [
-                        safe_float(v)
-                        for v in y
-                    ],
-
-                "predicted_values":
-                    [
-                        safe_float(v)
-                        for v in predictions
-                    ]
-            }
-        }
-
-    except Exception as e:
-
-        return {
-
-            "error":
-                str(e)
-        }
+        "history":
+            ANALYTICS_HISTORY[-20:]
+    }
 
 # ==========================================
 # DOWNLOAD
@@ -793,30 +654,39 @@ async def run_model(
 @app.get("/download-predictions")
 async def download_predictions():
 
-    global last_predictions_df
+    global LAST_PREDICTIONS
 
-    if last_predictions_df is None:
+    if LAST_PREDICTIONS is None:
 
         return {
 
             "error":
-                "Nenhum modelo executado."
+                "Nenhuma previsão disponível."
         }
 
-    file_path = os.path.join(
-        UPLOAD_FOLDER,
-        "midas_predictions.xlsx"
-    )
+    output_path =
+        "predictions.xlsx"
 
-    last_predictions_df.to_excel(
-        file_path,
+    LAST_PREDICTIONS.to_excel(
+        output_path,
         index=False
     )
 
     return FileResponse(
 
-        file_path,
+        output_path,
 
-        filename=
-            "midas_predictions.xlsx"
+        filename="predictions.xlsx"
+    )
+
+# ==========================================
+# MAIN
+# ==========================================
+
+if __name__ == "__main__":
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000
     )
