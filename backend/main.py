@@ -12,6 +12,26 @@ from sklearn.metrics import (
     mean_squared_error
 )
 
+# ==========================================
+# ANALYTICS MODULES
+# ==========================================
+
+from analytics.central_tendency import (
+    calculate_central_tendency
+)
+
+from analytics.dispersion import (
+    calculate_dispersion
+)
+
+from analytics.position import (
+    calculate_position
+)
+
+# ==========================================
+# LIBS
+# ==========================================
+
 import pandas as pd
 import numpy as np
 import os
@@ -24,7 +44,7 @@ import re
 app = FastAPI()
 
 # ==========================================
-# GLOBAL DATAFRAME
+# GLOBALS
 # ==========================================
 
 uploaded_df = None
@@ -32,7 +52,7 @@ uploaded_df = None
 last_predictions_df = None
 
 # ==========================================
-# MODEL REQUEST
+# REQUESTS
 # ==========================================
 
 class ModelRequest(BaseModel):
@@ -42,6 +62,16 @@ class ModelRequest(BaseModel):
     target_variable: str
 
     features: list[str]
+
+# ==========================================
+# VARIABLE ANALYSIS REQUEST
+# ==========================================
+
+class VariableAnalysisRequest(BaseModel):
+
+    variable: str
+
+    analysis_type: str
 
 # ==========================================
 # UPLOAD FOLDER
@@ -55,7 +85,7 @@ os.makedirs(
 )
 
 # ==========================================
-# STATIC FILES
+# STATIC
 # ==========================================
 
 app.mount(
@@ -150,10 +180,6 @@ def detect_column_type(
 
         return "datetime"
 
-    # ==========================================
-    # DEFAULT
-    # ==========================================
-
     return "categorical"
 
 # ==========================================
@@ -198,7 +224,7 @@ async def upload_excel(
         uploaded_df = df.copy()
 
         # ==========================================
-        # COLUMN ANALYSIS
+        # ANALYSIS
         # ==========================================
 
         columns_analysis = []
@@ -218,10 +244,6 @@ async def upload_excel(
                 )
             )
 
-            # ==========================================
-            # POSSIBLE TIME
-            # ==========================================
-
             if detected_type in [
                 "datetime",
                 "categorical"
@@ -231,10 +253,6 @@ async def upload_excel(
                     str(col)
                 )
 
-            # ==========================================
-            # DATE COLUMN
-            # ==========================================
-
             if (
                 detected_type == "datetime"
                 and detected_date_column is None
@@ -242,19 +260,11 @@ async def upload_excel(
 
                 detected_date_column = str(col)
 
-            # ==========================================
-            # NUMERIC
-            # ==========================================
-
             if detected_type == "numeric":
 
                 numeric_columns.append(
                     str(col)
                 )
-
-            # ==========================================
-            # ANALYSIS
-            # ==========================================
 
             columns_analysis.append({
 
@@ -279,7 +289,7 @@ async def upload_excel(
             })
 
         # ==========================================
-        # TARGET VARIABLE
+        # TARGET
         # ==========================================
 
         target_variable = None
@@ -337,6 +347,9 @@ async def upload_excel(
             "possible_time_columns":
                 possible_time_columns,
 
+            "numeric_columns":
+                numeric_columns,
+
             "suggestions": {
 
                 "date_column":
@@ -364,6 +377,108 @@ async def upload_excel(
         }
 
 # ==========================================
+# VARIABLE ANALYSIS
+# ==========================================
+
+@app.post("/variable-analysis")
+async def variable_analysis(
+    request: VariableAnalysisRequest
+):
+
+    try:
+
+        global uploaded_df
+
+        if uploaded_df is None:
+
+            return {
+                "error":
+                    "Nenhum dataset carregado."
+            }
+
+        variable =
+            request.variable
+
+        analysis_type =
+            request.analysis_type
+
+        if variable not in uploaded_df.columns:
+
+            return {
+                "error":
+                    "Variável não encontrada."
+            }
+
+        series = uploaded_df[
+            variable
+        ]
+
+        # ==========================================
+        # CENTRAL TENDENCY
+        # ==========================================
+
+        if analysis_type == "central_tendency":
+
+            results = (
+                calculate_central_tendency(
+                    series
+                )
+            )
+
+        # ==========================================
+        # DISPERSION
+        # ==========================================
+
+        elif analysis_type == "dispersion":
+
+            results = (
+                calculate_dispersion(
+                    series
+                )
+            )
+
+        # ==========================================
+        # POSITION
+        # ==========================================
+
+        elif analysis_type == "position":
+
+            results = (
+                calculate_position(
+                    series
+                )
+            )
+
+        else:
+
+            return {
+                "error":
+                    "Tipo de análise inválido."
+            }
+
+        # ==========================================
+        # RESPONSE
+        # ==========================================
+
+        return {
+
+            "variable":
+                variable,
+
+            "analysis_type":
+                analysis_type,
+
+            "results":
+                results
+        }
+
+    except Exception as e:
+
+        return {
+            "error": str(e)
+        }
+
+# ==========================================
 # RUN MODEL
 # ==========================================
 
@@ -377,10 +492,6 @@ async def run_model(
         global uploaded_df
         global last_predictions_df
 
-        # ==========================================
-        # VALIDATION
-        # ==========================================
-
         if uploaded_df is None:
 
             return {
@@ -388,24 +499,22 @@ async def run_model(
                     "Nenhum dataset carregado."
             }
 
-        # ==========================================
-        # COPY DF
-        # ==========================================
-
         df = uploaded_df.copy()
 
+        target_variable = (
+            request.target_variable
+        )
+
+        features = (
+            request.features
+        )
+
+        date_column = (
+            request.date_column
+        )
+
         # ==========================================
-        # VARIABLES
-        # ==========================================
-
-        target_variable = request.target_variable
-
-        features = request.features
-
-        date_column = request.date_column
-
-        # ==========================================
-        # MODEL DATAFRAME
+        # MODEL DF
         # ==========================================
 
         model_df = df[
@@ -413,10 +522,6 @@ async def run_model(
             [target_variable] +
             features
         ].dropna()
-
-        # ==========================================
-        # X AND Y
-        # ==========================================
 
         X = model_df[
             features
@@ -437,7 +542,7 @@ async def run_model(
         predictions = model.predict(X)
 
         # ==========================================
-        # EXPORT DATAFRAME
+        # EXPORT DF
         # ==========================================
 
         export_df = pd.DataFrame({
