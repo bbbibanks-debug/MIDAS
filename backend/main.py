@@ -54,7 +54,7 @@ async def root():
     )
 
 # ==========================================
-# MODELS
+# REQUEST MODELS
 # ==========================================
 
 class ModelRequest(BaseModel):
@@ -85,7 +85,7 @@ async def upload_file(
         filename = file.filename.lower()
 
         # ======================================
-        # LOAD FILE
+        # LOAD DATASET
         # ======================================
 
         if filename.endswith(".csv"):
@@ -109,7 +109,7 @@ async def upload_file(
         )
 
         # ======================================
-        # POSSIBLE TIME COLUMNS
+        # TIME COLUMNS
         # ======================================
 
         possible_time_columns = []
@@ -170,6 +170,10 @@ async def upload_file(
             if possible_time_columns
             else None
         )
+
+        # ======================================
+        # RESPONSE
+        # ======================================
 
         return {
 
@@ -237,19 +241,20 @@ async def run_model(
         df = DATAFRAME.copy()
 
         # ======================================
-        # CLEAN
+        # REQUIRED COLUMNS
         # ======================================
 
-        required_cols = [
-            request.target_variable
-        ] + request.features
+        required_cols = (
+            [request.target_variable]
+            + request.features
+        )
 
         df = df.dropna(
             subset=required_cols
         )
 
         # ======================================
-        # X Y
+        # X / Y
         # ======================================
 
         X = df[request.features]
@@ -284,28 +289,48 @@ async def run_model(
         )
 
         # ======================================
-        # FORECAST
+        # FORECAST ENGINE
         # ======================================
 
         forecast_horizon = (
             request.forecast_horizon
         )
 
-        last_row = X.iloc[-1].copy()
+        last_row = (
+            X.iloc[-1]
+            .copy()
+            .astype(float)
+        )
 
         future_predictions = []
 
-        for _ in range(
+        for step in range(
             forecast_horizon
         ):
 
+            input_data = (
+                last_row
+                .values
+                .reshape(1, -1)
+            )
+
             pred = model.predict(
-                [last_row]
+                input_data
             )[0]
 
+            pred = float(pred)
+
             future_predictions.append(
-                float(pred)
+                pred
             )
+
+            # ==================================
+            # RECURSIVE UPDATE
+            # ==================================
+
+            if len(last_row) > 0:
+
+                last_row.iloc[0] = pred
 
         # ======================================
         # FUTURE DATES
