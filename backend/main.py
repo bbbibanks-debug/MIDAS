@@ -35,6 +35,10 @@ from analytics.moving_averages import (
     calculate_temporal_analytics
 )
 
+from analytics.insights import (
+    generate_insights
+)
+
 # ==========================================
 # LIBS
 # ==========================================
@@ -427,6 +431,16 @@ async def variable_analysis(
                     "Tipo de análise inválido."
             }
 
+        # ==========================================
+        # AI INSIGHTS
+        # ==========================================
+
+        insights = (
+            generate_insights(
+                results
+            )
+        )
+
         return {
 
             "variable":
@@ -436,7 +450,10 @@ async def variable_analysis(
                 analysis_type,
 
             "results":
-                results
+                results,
+
+            "insights":
+                insights
         }
 
     except Exception as e:
