@@ -1,6 +1,5 @@
 // ==========================================
-// MIDAS FRONTEND ENGINE
-// AI ANALYTICS RELEASE
+// MIDAS MASTER FRONTEND ENGINE
 // ==========================================
 
 let uploadedData = null;
@@ -122,7 +121,7 @@ function calculateEMA(
 }
 
 // ==========================================
-// UPLOAD
+// UPLOAD FILE
 // ==========================================
 
 async function uploadFile() {
@@ -200,30 +199,22 @@ function updateSummary(data) {
     document.getElementById(
         "summaryRows"
     ).innerText =
-        formatNumber(
-            data.dataset_info.rows
-        );
+        data.dataset_info.rows;
 
     document.getElementById(
         "summaryColumns"
     ).innerText =
-        formatNumber(
-            data.dataset_info.columns
-        );
+        data.dataset_info.columns;
 
     document.getElementById(
         "summaryNumeric"
     ).innerText =
-        formatNumber(
-            data.numeric_columns.length
-        );
+        data.numeric_columns.length;
 
     document.getElementById(
         "summaryDatetime"
     ).innerText =
-        formatNumber(
-            data.possible_time_columns.length
-        );
+        data.possible_time_columns.length;
 }
 
 // ==========================================
@@ -544,56 +535,7 @@ function renderChart(results) {
 
                     responsive: true,
 
-                    maintainAspectRatio: false,
-
-                    interaction: {
-
-                        mode: "index",
-
-                        intersect: false
-                    },
-
-                    plugins: {
-
-                        legend: {
-
-                            labels: {
-
-                                color: "#ffffff"
-                            }
-                        }
-                    },
-
-                    scales: {
-
-                        x: {
-
-                            ticks: {
-
-                                color: "#94a3b8"
-                            },
-
-                            grid: {
-
-                                color:
-                                    "rgba(255,255,255,0.05)"
-                            }
-                        },
-
-                        y: {
-
-                            ticks: {
-
-                                color: "#94a3b8"
-                            },
-
-                            grid: {
-
-                                color:
-                                    "rgba(255,255,255,0.05)"
-                            }
-                        }
-                    }
+                    maintainAspectRatio: false
                 }
             }
         );
@@ -635,22 +577,13 @@ function activateAnalyticsButtons() {
         button.onclick =
             async function () {
 
-                if (!uploadedData) {
-
-                    alert(
-                        "Carregue uma planilha primeiro."
-                    );
-
-                    return;
-                }
-
                 const variable =
                     statisticsSelect.value;
 
                 if (!variable) {
 
                     alert(
-                        "Selecione uma variável estatística."
+                        "Selecione uma variável."
                     );
 
                     return;
@@ -861,26 +794,6 @@ function renderStatistics(data) {
 
     let html = `
 
-        <div class="statistics-header">
-
-            <div class="statistics-variable">
-
-                VARIÁVEL:
-                ${data.variable}
-
-            </div>
-
-            <div class="statistics-type">
-
-                ANÁLISE:
-                ${data.analysis_type
-                    .replaceAll("_", " ")
-                    .toUpperCase()}
-
-            </div>
-
-        </div>
-
         <div class="statistics-grid">
     `;
 
@@ -895,10 +808,6 @@ function renderStatistics(data) {
     });
 
     html += `</div>`;
-
-    // ==========================================
-    // AI INSIGHTS
-    // ==========================================
 
     html += renderInsights(
         data.insights
