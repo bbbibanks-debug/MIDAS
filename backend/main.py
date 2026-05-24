@@ -55,58 +55,17 @@ import re
 app = FastAPI()
 
 # ==========================================
-# ANALYTICS HISTORY
+# GLOBALS
 # ==========================================
+
+uploaded_df = None
+
+last_predictions_df = None
 
 analytics_history = []
 
 # ==========================================
-# SAVE ANALYSIS
-# ==========================================
-
-def save_analysis_history(
-
-    variable,
-    analysis_type,
-    results,
-    insights
-
-):
-
-    global analytics_history
-
-    entry = {
-
-        "variable":
-            variable,
-
-        "analysis_type":
-            analysis_type,
-
-        "results":
-            results,
-
-        "insights":
-            insights,
-
-        "timestamp":
-            pd.Timestamp.now()
-            .strftime(
-                "%d/%m/%Y %H:%M:%S"
-            )
-    }
-
-    analytics_history.insert(
-        0,
-        entry
-    )
-
-    analytics_history = (
-        analytics_history[:20]
-    )
-
-# ==========================================
-# BASE PATHS
+# PATHS
 # ==========================================
 
 BASE_DIR = os.path.dirname(
@@ -129,7 +88,7 @@ os.makedirs(
 )
 
 # ==========================================
-# STATIC FILES
+# STATIC
 # ==========================================
 
 app.mount(
@@ -137,14 +96,6 @@ app.mount(
     StaticFiles(directory=STATIC_DIR),
     name="static"
 )
-
-# ==========================================
-# GLOBALS
-# ==========================================
-
-uploaded_df = None
-
-last_predictions_df = None
 
 # ==========================================
 # REQUESTS
@@ -179,77 +130,166 @@ async def home():
     )
 
 # ==========================================
-# ANALYTICS HISTORY ROUTE
+# HELPERS
+# ==========================================
+
+def safe_float(value):
+
+    try:
+
+        return round(
+            float(value),
+            4
+        )
+
+    except:
+
+        return None
+
+# ==========================================
+# SERIALIZE
+# ==========================================
+
+def serialize_results(results):
+
+    serialized = {}
+
+    for key, value in results.items():
+
+        if isinstance(
+            value,
+            (
+                np.integer,
+                np.floating
+            )
+        ):
+
+            serialized[key] = (
+                float(value)
+            )
+
+        elif isinstance(
+            value,
+            np.ndarray
+        ):
+
+            serialized[key] = (
+                value.tolist()
+            )
+
+        else:
+
+            serialized[key] = value
+
+    return serialized
+
+# ==========================================
+# SAVE HISTORY
+# ==========================================
+
+def save_analysis_history(
+
+    variable,
+    analysis_type,
+    results,
+    insights
+
+):
+
+    global analytics_history
+
+    analytics_history.insert(
+        0,
+        {
+
+            "variable":
+                variable,
+
+            "analysis_type":
+                analysis_type,
+
+            "results":
+                serialize_results(
+                    results
+                ),
+
+            "insights":
+                insights,
+
+            "timestamp":
+                pd.Timestamp.now()
+                .strftime(
+                    "%d/%m/%Y %H:%M:%S"
+                )
+        }
+    )
+
+    analytics_history = (
+        analytics_history[:20]
+    )
+
+# ==========================================
+# DETECT TYPE
+# ==========================================
+
+def detect_column_type(series):
+
+    clean = series.dropna()
+
+    if len(clean) == 0:
+
+        return "unknown"
+
+    if pd.api.types.is_numeric_dtype(clean):
+
+        return "numeric"
+
+    sample = (
+        clean
+        .astype(str)
+        .head(20)
+    )
+
+    patterns = [
+
+        r"^\d{4}$",
+        r"^\d{4}-\d{2}$",
+        r"^\d{4}/\d{2}$",
+        r"^\d{4}Q[1-4]$"
+    ]
+
+    matches = 0
+
+    for value in sample:
+
+        for pattern in patterns:
+
+            if re.match(pattern, value):
+
+                matches += 1
+
+                break
+
+    ratio = matches / len(sample)
+
+    if ratio > 0.5:
+
+        return "datetime"
+
+    return "categorical"
+
+# ==========================================
+# HISTORY
 # ==========================================
 
 @app.get("/analytics-history")
-async def get_analytics_history():
-
-    global analytics_history
+async def analytics_history_route():
 
     return {
 
         "history":
             analytics_history
     }
-
-# ==========================================
-# DETECT COLUMN TYPE
-# ==========================================
-
-def detect_column_type(series):
-
-    clean_series = series.dropna()
-
-    if len(clean_series) == 0:
-
-        return "unknown"
-
-    if pd.api.types.is_numeric_dtype(
-        clean_series
-    ):
-
-        return "numeric"
-
-    sample_values = (
-        clean_series
-        .astype(str)
-        .head(20)
-    )
-
-    temporal_patterns = [
-
-        r"^\d{4}-\d{2}$",
-        r"^\d{4}/\d{2}$",
-        r"^\d{4}Q[1-4]$",
-        r"^\d{4}$"
-    ]
-
-    temporal_matches = 0
-
-    for value in sample_values:
-
-        for pattern in temporal_patterns:
-
-            if re.match(
-                pattern,
-                value
-            ):
-
-                temporal_matches += 1
-
-                break
-
-    ratio = (
-        temporal_matches /
-        len(sample_values)
-    )
-
-    if ratio > 0.6:
-
-        return "datetime"
-
-    return "categorical"
 
 # ==========================================
 # UPLOAD
@@ -282,17 +322,27 @@ async def upload_excel(
             file_path
         )
 
-        uploaded_df = df.copy()
+        # ==========================================
+        # FALLBACK INDEX
+        # ==========================================
 
-        columns_analysis = []
+        df["__index__"] = (
+            np.arange(len(df))
+        )
+
+        uploaded_df = df.copy()
 
         numeric_columns = []
 
-        possible_time_columns = []
+        temporal_columns = []
 
-        detected_date_column = None
+        columns_analysis = []
 
         for col in df.columns:
+
+            if col == "__index__":
+
+                continue
 
             detected_type = (
                 detect_column_type(
@@ -311,16 +361,9 @@ async def upload_excel(
                 "categorical"
             ]:
 
-                possible_time_columns.append(
+                temporal_columns.append(
                     str(col)
                 )
-
-            if (
-                detected_type == "datetime"
-                and detected_date_column is None
-            ):
-
-                detected_date_column = str(col)
 
             columns_analysis.append({
 
@@ -344,6 +387,12 @@ async def upload_excel(
                     )
             })
 
+        if len(temporal_columns) == 0:
+
+            temporal_columns.append(
+                "__index__"
+            )
+
         target_variable = None
 
         if len(numeric_columns) > 0:
@@ -360,14 +409,6 @@ async def upload_excel(
 
                 features.append(col)
 
-        preview_data = (
-            df.head(5)
-            .astype(str)
-            .to_dict(
-                orient="records"
-            )
-        )
-
         return {
 
             "dataset_info": {
@@ -376,37 +417,35 @@ async def upload_excel(
                     int(len(df)),
 
                 "columns":
-                    int(len(df.columns))
+                    int(len(df.columns) - 1)
             },
-
-            "columns_analysis":
-                columns_analysis,
 
             "numeric_columns":
                 numeric_columns,
 
             "possible_time_columns":
-                possible_time_columns,
+                temporal_columns,
+
+            "columns_analysis":
+                columns_analysis,
 
             "suggestions": {
 
                 "date_column":
-                    detected_date_column,
+                    temporal_columns[0],
 
                 "target_variable":
                     target_variable,
 
                 "features":
                     features
-            },
-
-            "preview":
-                preview_data
+            }
         }
 
     except Exception as e:
 
         return {
+
             "error":
                 str(e)
         }
@@ -447,7 +486,7 @@ async def variable_analysis(
         ]
 
         # ==========================================
-        # ROUTER
+        # ANALYSIS
         # ==========================================
 
         if analysis_type == "central_tendency":
@@ -497,19 +536,15 @@ async def variable_analysis(
                     "Tipo de análise inválido."
             }
 
-        # ==========================================
-        # INSIGHTS
-        # ==========================================
+        results = serialize_results(
+            results
+        )
 
         insights = (
             generate_insights(
                 results
             )
         )
-
-        # ==========================================
-        # SAVE HISTORY
-        # ==========================================
 
         save_analysis_history(
 
@@ -537,12 +572,13 @@ async def variable_analysis(
     except Exception as e:
 
         return {
+
             "error":
                 str(e)
         }
 
 # ==========================================
-# RUN MODEL
+# MODEL
 # ==========================================
 
 @app.post("/run-model")
@@ -558,37 +594,94 @@ async def run_model(
         if uploaded_df is None:
 
             return {
+
                 "error":
                     "Nenhum dataset carregado."
             }
 
-        df = uploaded_df.copy()
-
-        target_variable = request.target_variable
+        target = request.target_variable
 
         features = request.features
 
         date_column = request.date_column
 
-        model_df = df[
-            [date_column] +
-            [target_variable] +
-            features
+        # ==========================================
+        # FALLBACK
+        # ==========================================
+
+        if (
+            date_column
+            not in uploaded_df.columns
+        ):
+
+            date_column = "__index__"
+
+        if target not in uploaded_df.columns:
+
+            return {
+
+                "error":
+                    "Variável alvo inválida."
+            }
+
+        valid_features = []
+
+        for feature in features:
+
+            if (
+                feature in uploaded_df.columns
+                and feature != target
+            ):
+
+                valid_features.append(
+                    feature
+                )
+
+        if len(valid_features) == 0:
+
+            return {
+
+                "error":
+                    "Nenhuma variável explicativa válida."
+            }
+
+        model_df = uploaded_df[
+
+            [date_column]
+            +
+            [target]
+            +
+            valid_features
+
         ].dropna()
 
+        if len(model_df) < 3:
+
+            return {
+
+                "error":
+                    "Poucos dados para regressão."
+            }
+
         X = model_df[
-            features
+            valid_features
         ]
 
         y = model_df[
-            target_variable
+            target
         ]
 
         model = LinearRegression()
 
         model.fit(X, y)
 
-        predictions = model.predict(X)
+        predictions = (
+            model.predict(X)
+        )
+
+        # ==========================================
+        # EXPORT
+        # ==========================================
 
         export_df = pd.DataFrame({
 
@@ -605,6 +698,10 @@ async def run_model(
         })
 
         last_predictions_df = export_df
+
+        # ==========================================
+        # METRICS
+        # ==========================================
 
         r2 = r2_score(
             y,
@@ -626,16 +723,13 @@ async def run_model(
         coefficients = {}
 
         for feature, coef in zip(
-            features,
+            valid_features,
             model.coef_
         ):
 
             coefficients[
                 feature
-            ] = round(
-                float(coef),
-                2
-            )
+            ] = safe_float(coef)
 
         return {
 
@@ -647,29 +741,17 @@ async def run_model(
                     ),
 
                 "r2":
-                    round(
-                        float(r2),
-                        2
-                    ),
+                    safe_float(r2),
 
                 "mae":
-                    round(
-                        float(mae),
-                        2
-                    ),
+                    safe_float(mae),
 
                 "rmse":
-                    round(
-                        float(rmse),
-                        2
-                    ),
+                    safe_float(rmse),
 
                 "intercept":
-                    round(
-                        float(
-                            model.intercept_
-                        ),
-                        2
+                    safe_float(
+                        model.intercept_
                     ),
 
                 "coefficients":
@@ -684,19 +766,13 @@ async def run_model(
 
                 "actual_values":
                     [
-                        round(
-                            float(v),
-                            2
-                        )
+                        safe_float(v)
                         for v in y
                     ],
 
                 "predicted_values":
                     [
-                        round(
-                            float(v),
-                            2
-                        )
+                        safe_float(v)
                         for v in predictions
                     ]
             }
@@ -705,6 +781,7 @@ async def run_model(
     except Exception as e:
 
         return {
+
             "error":
                 str(e)
         }
@@ -721,6 +798,7 @@ async def download_predictions():
     if last_predictions_df is None:
 
         return {
+
             "error":
                 "Nenhum modelo executado."
         }
@@ -736,6 +814,9 @@ async def download_predictions():
     )
 
     return FileResponse(
+
         file_path,
-        filename="midas_predictions.xlsx"
+
+        filename=
+            "midas_predictions.xlsx"
     )
